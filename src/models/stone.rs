@@ -1,0 +1,6 @@
+
+struct Stone {
+    
+    stoneColor: Color,
+
+}

@@ -1,0 +1,6 @@
+
+struct Player {
+    
+    playerColor: Color,
+
+}
