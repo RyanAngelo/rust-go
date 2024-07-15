@@ -27,21 +27,24 @@ pub fn place_stone(
 ) -> bool {
     if board.board_state[row][col].player_color == 0 {
         board.board_state[row][col].player_color = player.player_color;
-        let friends:LinkedList<(usize, usize)> = get_friends(board, row, col, board.board_size);
-        check_for_chain(board, friends, row, col);
+        let friends:LinkedList<(usize, usize)> = get_adjacent(board, row, col, board.board_size, player.player_color);
+        update_chain(board, friends, row, col);
+        //Check for liberties. If a stone doesnt have a liberty, it has been captured.
+        check_for_liberties(board, row, col);
         return true;
     } else {
         return false;
     }
 }
 
-//Find surrounding adjacent neighbors of the same color
+//Find surrounding adjacent neighbors of a color
 //Only borrows
-pub fn get_friends(
+pub fn get_adjacent(
     board: &mut Board,
     row: usize,
     col: usize,
     board_size: usize,
+    desired_color: u8,
 ) -> LinkedList<(usize, usize)> {
     //Check left, right, above and below for "friendly" intersections
     let mut friends: LinkedList<(usize, usize)> = LinkedList::new();
@@ -49,7 +52,7 @@ pub fn get_friends(
     //Check left friend
     if intersection.col != 0 {
         if board.board_state[intersection.row][intersection.col - 1].player_color
-            == intersection.player_color
+            == desired_color
         {
             friends.push_back((intersection.row, intersection.col-1));
         }
@@ -58,7 +61,7 @@ pub fn get_friends(
     //Check right friend
     if intersection.col + 1 != board_size {
         if board.board_state[intersection.row][intersection.col + 1].player_color
-            == intersection.player_color
+            == desired_color
         {
             friends.push_back((intersection.row, intersection.col+1));
         }
@@ -67,7 +70,7 @@ pub fn get_friends(
     //Check friend above
     if intersection.row != 0 {
         if board.board_state[intersection.row - 1][intersection.col].player_color
-            == intersection.player_color
+            == desired_color
         {
             friends.push_back((intersection.row - 1, intersection.col));
         }
@@ -76,7 +79,7 @@ pub fn get_friends(
     //Check friend below
     if intersection.row + 1 != board_size {
         if board.board_state[intersection.row + 1][intersection.col].player_color
-            == intersection.player_color
+            == desired_color
         {
             friends.push_back((intersection.row + 1, intersection.col));
         }
@@ -85,10 +88,12 @@ pub fn get_friends(
 }
 
 
-    //Call after placing a stone
-    //Create a new chain based on the friends that were found around the newly placed stone
-    //row and col represent the location of the newly placed stone
-    pub fn check_for_chain(
+    /**
+     * Call after placing a stone
+     * Create a new chain based on the friends that were found around the newly placed stone
+     * row and col represent the location of the newly placed stone
+    **/
+    pub fn update_chain(
         board: &mut Board,
         friends: LinkedList<(usize, usize)>,
         row: usize,
@@ -107,8 +112,16 @@ pub fn get_friends(
                 }
             }
         }
+        //Add to the board chains our new combined chain
         board.board_chains.insert(Board::generate_id(row, col), new_friend_chain);
-        //Find all intersections that are liberties and update them accordingly
+    }
+
+    /**
+     * Check for liberties for all pieces potentially impacted by a stone placement
+     * For each chain, get all associated liberties. If a chain doesn't have any liberties, it has been conquered.
+     */
+    pub fn check_for_liberties(board: &mut Board, row: usize, col: usize) {
+        
     }
 
 /**
@@ -271,7 +284,7 @@ mod tests {
         assert_eq!(test_board.board_state[0][1].chain_id, test_board.board_state[0][2].chain_id);
     }
 
-    //#[test]
+    #[test]
     fn test_check_for_capture() {
         let mut test_white: Player = Player::new(crate::game::WHITE);
         let test_black: Player = Player::new(crate::game::BLACK);
@@ -283,6 +296,8 @@ mod tests {
         game::place_stone(&mut test_board, &test_white, 1, 0);
         game::place_stone(&mut test_board, &test_black, 1, 1);
         game::place_stone(&mut test_board, &test_black, 1, 2);
+        //assert!(test_board.board_liberties.get(&test_board.board_state[1][2].chain_id));
+        
         //test_board[2][1] getting acquired by white (1) will capture the black (2) at [1][1]
         game::place_stone(&mut test_board, &test_white, 2, 1);
         let captured: u8 = test_board.check_for_capture(2, 1); //Should return 1.
