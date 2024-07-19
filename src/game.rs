@@ -121,7 +121,12 @@ pub fn get_adjacent(
      * For each chain, get all associated liberties. If a chain doesn't have any liberties, it has been conquered.
      */
     pub fn check_for_liberties(board: &mut Board, row: usize, col: usize) {
-        
+        for chain_key in board.board_chains.keys() {
+            println!("Checking chain {chain_key}");
+            for chain_friend in board.board_chains.get(chain_key) {
+                println!("Checking space {:?}", chain_friend);
+            }
+        }
     }
 
 /**
@@ -292,12 +297,11 @@ mod tests {
         game::place_stone(&mut test_board, &test_white, 0, 0);
         game::place_stone(&mut test_board, &test_white, 0, 1);
         game::place_stone(&mut test_board, &test_white, 0, 2);
-        game::place_stone(&mut test_board, &test_white, 0, 3);
         game::place_stone(&mut test_board, &test_white, 1, 0);
         game::place_stone(&mut test_board, &test_black, 1, 1);
         game::place_stone(&mut test_board, &test_black, 1, 2);
         //assert!(test_board.board_liberties.get(&test_board.board_state[1][2].chain_id));
-        
+
         //test_board[2][1] getting acquired by white (1) will capture the black (2) at [1][1]
         game::place_stone(&mut test_board, &test_white, 2, 1);
         let captured: u8 = test_board.check_for_capture(2, 1); //Should return 1.
