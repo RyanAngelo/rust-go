@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, LinkedList}, fmt,
+    collections::{HashMap, HashSet, LinkedList}, fmt,
 };
 
 pub const EMPTY: u8 = 0;
@@ -27,7 +27,7 @@ pub fn place_stone(
 ) -> bool {
     if board.board_state[row][col].player_color == 0 {
         board.board_state[row][col].player_color = player.player_color;
-        let friends:LinkedList<(usize, usize)> = get_adjacent(board, row, col, board.board_size, player.player_color);
+        let friends:LinkedList<(usize, usize)> = get_adjacent(board, row, col, player.player_color);
         update_chain(board, friends, row, col);
         //Check for liberties. If a stone doesnt have a liberty, it has been captured.
         check_for_liberties(board, row, col);
@@ -40,10 +40,9 @@ pub fn place_stone(
 //Find surrounding adjacent neighbors of a color
 //Only borrows
 pub fn get_adjacent(
-    board: &mut Board,
+    board: &Board,
     row: usize,
     col: usize,
-    board_size: usize,
     desired_color: u8,
 ) -> LinkedList<(usize, usize)> {
     //Check left, right, above and below for "friendly" intersections
@@ -59,7 +58,7 @@ pub fn get_adjacent(
     }
 
     //Check right friend
-    if intersection.col + 1 != board_size {
+    if intersection.col + 1 != board.board_size {
         if board.board_state[intersection.row][intersection.col + 1].player_color
             == desired_color
         {
@@ -77,7 +76,7 @@ pub fn get_adjacent(
     }
 
     //Check friend below
-    if intersection.row + 1 != board_size {
+    if intersection.row + 1 != board.board_size {
         if board.board_state[intersection.row + 1][intersection.col].player_color
             == desired_color
         {
@@ -120,11 +119,13 @@ pub fn get_adjacent(
      * Check for liberties for all pieces potentially impacted by a stone placement
      * For each chain, get all associated liberties. If a chain doesn't have any liberties, it has been conquered.
      */
-    pub fn check_for_liberties(board: &mut Board, row: usize, col: usize) {
+    pub fn check_for_liberties(board: &mut Board, row: usize, col: usize) { 
         for chain_key in board.board_chains.keys() {
+            let mut books: HashSet<(usize, usize)> = HashSet::new();
             println!("Checking chain {chain_key}");
             for chain_friend in board.board_chains.get(chain_key) {
                 println!("Checking space {:?}", chain_friend);
+                get_adjacent(board, row, col, EMPTY);
             }
         }
     }
