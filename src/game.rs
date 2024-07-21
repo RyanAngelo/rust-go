@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, LinkedList}, fmt,
+    collections::{HashMap, HashSet}, fmt,
 };
 
 pub const EMPTY: u8 = 0;
@@ -140,6 +140,16 @@ pub fn get_adjacent(
             board.board_liberties.insert(chain_key.clone(), liberties_for_chain.into_iter().collect());
         }
         println!("Board Liberties {:?}", board.board_liberties);
+    }
+
+    /**
+     * Given a placement at position (row,col), check that the 
+     * placement of the stone is not going to cause a self capture
+     * return true if the placement would cause self capture
+     * return false if the placement is valid
+     */
+    pub fn check_for_self_capture(board: &mut Board, row: usize, col: usize) -> bool {
+        return false;
     }
 
     pub fn check_for_conquered(board: &mut Board) -> Vec<&Intersection> {
