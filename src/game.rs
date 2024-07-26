@@ -29,8 +29,6 @@ pub fn place_stone(
         board.board_state[row][col].player_color = player.player_color;
         let friends:Vec<(usize, usize)> = get_adjacent(board, row, col, player.player_color);
         update_chain(board, friends, row, col);
-        //Check for liberties. If a stone doesnt have a liberty, it has been captured.
-        check_for_liberties(board);
         return true;
     } else {
         return false;
@@ -167,13 +165,25 @@ pub fn get_adjacent(
                     None => continue,
                 };
                 for captured_location in captured_chain {
-                    removed_stones.push(&board.board_state[captured_location.0][captured_location.1]);
-                    //TODO: Update player stone captured count
+                    let captured_intersection: &Intersection = &board.board_state[captured_location.0][captured_location.1];
+                    removed_stones.push(captured_intersection);
                 }
             }
         }
         println!("The following stones were removed {:?}", removed_stones);
+        //TODO: Update the intersection with the captured color state
+        //TODO: call update_prisoners as needed
         return removed_stones;
+    }
+
+    pub fn update_prisoners(removed_stones: Vec<&Intersection>, board: &mut Board) {
+        for removed_stone in removed_stones {
+            if removed_stone.player_color == WHITE {
+                board.white_captured = board.white_captured + 1;
+            } else if removed_stone.player_color == BLACK {
+                board.black_captured = board.black_captured + 1;
+            }
+        }
     }
  
 /**
@@ -185,10 +195,10 @@ pub fn get_adjacent(
 pub(crate) struct Board {
     pub board_size: usize,
     pub board_state: Vec<Vec<Intersection>>,
-    //color -> Identifier String -> Vec of connected positions
     pub board_chains: HashMap<String, Vec<(usize, usize)>>,
-    //color -> Identifier String -> Vec of liberties for connection w/ name String
     pub board_liberties: HashMap<String, Vec<(usize, usize)>>,
+    pub white_captured: u8,
+    pub black_captured: u8,
 }
 
 impl Board {
@@ -231,6 +241,8 @@ impl Board {
             board_state: Self::build_board_start(board_size),
             board_chains: Self::build_chains_start(board_size),
             board_liberties: HashMap::new(),
+            white_captured: 0,
+            black_captured: 0,
         }
     }
 }
@@ -262,22 +274,13 @@ impl fmt::Display for Intersection {
 
 pub(crate) struct Player {
     player_color: u8,
-    prisoners: u8,
 }
 
 impl Player {
     pub fn new(new_player_color: u8) -> Self {
         Player {
             player_color: new_player_color,
-            prisoners: 0,
         }
-    }
-
-    //Add stones that have been taken from opponent
-    //Only used for territory scoring and not area scoring
-    pub fn add_prisoner(&mut self, num_taken_stones: u8) -> u8 {
-        self.prisoners = self.prisoners + num_taken_stones;
-        return self.prisoners;
     }
 }
 
@@ -310,16 +313,6 @@ mod tests {
     }
 
     #[test]
-    fn test_add_stone_taken() {
-        let mut test_player: Player = Player::new(crate::game::WHITE);
-        test_player.add_prisoner(5);
-        assert_eq!(test_player.prisoners, 5);
-        test_player.add_prisoner(3);
-        assert_eq!(test_player.prisoners, 8);
-    }
-
-
-    #[test]
     fn test_check_for_chain() {
         let test_white: Player = Player::new(crate::game::WHITE);
         let mut test_board: Board = Board::new(3);
@@ -338,16 +331,29 @@ mod tests {
         let test_black: Player = Player::new(crate::game::BLACK);
         let mut test_board: Board = Board::new(3);
         game::place_stone(&mut test_board, &test_white, 0, 0);
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_white, 0, 1);
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_white, 0, 2);
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_white, 1, 0);
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_black, 1, 1);
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_black, 1, 2);
-        //assert!(test_board.board_liberties.get(&test_board.board_state[1][2].chain_id));
-
-        //test_board[2][1] getting acquired by white (1) will capture the black (2) at [1][1]
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
+        let captured1: Vec<&game::Intersection> = check_for_conquered(&mut test_board); //Should return 0.
+        assert_eq!(captured1.len(), 0);
         game::place_stone(&mut test_board, &test_white, 2, 1);
-        let captured: Vec<&game::Intersection> = check_for_conquered(&mut test_board); //Should return 1.
-        assert_eq!(captured.len(), 2);
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
+        let captured2: Vec<&game::Intersection> = check_for_conquered(&mut test_board); //Should return 2
+        assert_eq!(captured2.len(), 2);
     }
 }
