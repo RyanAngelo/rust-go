@@ -150,8 +150,8 @@ pub fn get_adjacent(
         return false;
     }
 
-    pub fn check_for_conquered(board: &mut Board) -> Vec<&Intersection> {
-        let mut removed_stones = Vec::<&Intersection>::new();
+    pub fn check_for_conquered(board: &mut Board) -> Vec<(usize, usize)> {
+        let mut removed_stones: Vec<(usize, usize)> = Vec::<(usize, usize)>::new();
         for chain_key in board.board_liberties.keys() {
             println!("Checking to see if chain id {chain_key} has any liberties...");
             let chain = match board.board_liberties.get(chain_key) {
@@ -166,12 +166,18 @@ pub fn get_adjacent(
                 };
                 for captured_location in captured_chain {
                     let captured_intersection: &Intersection = &board.board_state[captured_location.0][captured_location.1];
-                    removed_stones.push(captured_intersection);
+                    if captured_intersection.player_color == WHITE {
+                        board.white_captured = board.white_captured + 1;
+                        board.board_state[captured_location.0][captured_location.1].player_color = BLACK_TERR;
+                    } else if captured_intersection.player_color == BLACK {
+                        board.black_captured = board.black_captured + 1;
+                        board.board_state[captured_location.0][captured_location.1].player_color = WHITE_TERR;
+                    }
+                    removed_stones.push((board.board_state[captured_location.0][captured_location.1].row, board.board_state[captured_location.0][captured_location.1].col));
                 }
             }
         }
         println!("The following stones were removed {:?}", removed_stones);
-        //TODO: Update the intersection with the captured color state
         //TODO: call update_prisoners as needed
         return removed_stones;
     }
@@ -291,6 +297,7 @@ mod tests {
     use crate::game::check_for_conquered;
     use crate::game::Board;
     use crate::game::Player;
+    use crate::game::WHITE_TERR;
 
     #[test]
     fn test_place_stone() {
@@ -348,12 +355,13 @@ mod tests {
         game::place_stone(&mut test_board, &test_black, 1, 2);
         game::check_for_liberties(&mut test_board);
         game::check_for_conquered(&mut test_board);
-        let captured1: Vec<&game::Intersection> = check_for_conquered(&mut test_board); //Should return 0.
+        let captured1: Vec<(usize, usize)> = check_for_conquered(&mut test_board); //Should return 0.
         assert_eq!(captured1.len(), 0);
         game::place_stone(&mut test_board, &test_white, 2, 1);
         game::check_for_liberties(&mut test_board);
         game::check_for_conquered(&mut test_board);
-        let captured2: Vec<&game::Intersection> = check_for_conquered(&mut test_board); //Should return 2
+        let captured2: Vec<(usize, usize)> = check_for_conquered(&mut test_board); //Should return 2
         assert_eq!(captured2.len(), 2);
+        assert_eq!(test_board.board_state[captured2.first().unwrap().0][captured2.first().unwrap().1].player_color, WHITE_TERR);
     }
 }
