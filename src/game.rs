@@ -30,6 +30,8 @@ pub fn place_stone(
         board.board_state[row][col].player_color = player.player_color;
         let friends:Vec<(usize, usize)> = get_adjacent(board, row, col, player.player_color);
         update_chain(board, friends, row, col);
+        check_for_liberties(board);
+        check_for_conquered(board);
         return true;
     } else {
         return false;
@@ -187,16 +189,6 @@ pub fn get_adjacent(
         //TODO: call update_prisoners as needed
         return removed_stones;
     }
-
-    pub fn update_prisoners(removed_stones: Vec<&Intersection>, board: &mut Board) {
-        for removed_stone in removed_stones {
-            if removed_stone.player_color == WHITE {
-                board.white_captured = board.white_captured + 1;
-            } else if removed_stone.player_color == BLACK {
-                board.black_captured = board.black_captured + 1;
-            }
-        }
-    }
  
 /**
  * board_state represents the board using 2D vectors
@@ -332,31 +324,15 @@ mod tests {
         let test_black: Player = Player::new(crate::game::BLACK);
         let mut test_board: Board = Board::new(3);
         game::place_stone(&mut test_board, &test_white, 0, 0);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_white, 0, 1);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_white, 0, 2);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_white, 1, 0);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_black, 1, 1);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_black, 1, 2);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         let captured1: Vec<(usize, usize)> = check_for_conquered(&mut test_board); //Should return 0.
         assert_eq!(captured1.len(), 0);
         game::place_stone(&mut test_board, &test_white, 2, 1);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         game::place_stone(&mut test_board, &test_white, 2, 2);
-        game::check_for_liberties(&mut test_board);
-        game::check_for_conquered(&mut test_board);
         let captured2: Vec<(usize, usize)> = check_for_conquered(&mut test_board); //Should return 2
         assert_eq!(captured2.len(), 2);
         assert_eq!(test_board.board_state[captured2.first().unwrap().0][captured2.first().unwrap().1].player_color, WHITE_TERR);
