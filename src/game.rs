@@ -26,6 +26,7 @@ pub fn place_stone(
     col: usize,
 ) -> bool {
     if board.board_state[row][col].player_color == 0 {
+        println!("Placing {:?} stone at location {:?}", player.player_color, stringify!(row, col));
         board.board_state[row][col].player_color = player.player_color;
         let friends:Vec<(usize, usize)> = get_adjacent(board, row, col, player.player_color);
         update_chain(board, friends, row, col);
@@ -97,13 +98,16 @@ pub fn get_adjacent(
         col: usize,
     ) {
         //All of these friends needs to be made into a single chain
-        //They will now have the id of the newly placed stone
+        //They will have the id of the newly placed stone
         let mut new_friend_chain: Vec<(usize, usize)> = vec![(row, col)];
         for friend in friends {
             let friend_intersection: &Intersection = &board.board_state[friend.0][friend.1];
             let friend_chain: Option<(String, Vec<(usize, usize)>)> = board.board_chains.remove_entry(&friend_intersection.chain_id);
-            if let Some((s, vec)) = friend_chain {
+            board.board_liberties.remove(&friend_intersection.chain_id);
+            if let Some((old_chain, vec)) = friend_chain {
+                println!("Merging old chain {:?}", old_chain);
                 for (friend_row, friend_col) in vec {
+                    //All of the friends of this chain will now belong to the same chain with the id of the new stone
                     board.board_state[friend_row][friend_col].chain_id = board.board_state[row][col].chain_id.clone();
                     new_friend_chain.push((friend_row, friend_col));
                 }
@@ -111,6 +115,8 @@ pub fn get_adjacent(
         }
         //Add to the board chains our new combined chain
         board.board_chains.insert(Board::generate_id(row, col), new_friend_chain);
+        println!("Board Chains {:?}", board.board_chains);
+
     }
 
     /**
@@ -127,7 +133,7 @@ pub fn get_adjacent(
                 None => continue,
               };
             for chain_friend in chain {
-                println!("Checking space {:?}", chain_friend);
+                println!("Checking space {:?} for liberties", chain_friend);
                 let row = chain_friend.0;
                 let col = chain_friend.1;
                 let adjacent_empty: Vec<(usize, usize)> = get_adjacent(board, row, col, EMPTY);
@@ -229,23 +235,11 @@ impl Board {
         return b_rows;
     }
 
-    pub fn build_chains_start(board_size: usize) -> HashMap<String, Vec<(usize, usize)>> {
-        let mut board_chains: HashMap<String, Vec<(usize, usize)>> = HashMap::new();
-        for row in 0..=board_size-1 {
-            for column in 0..=board_size-1 {
-                //Each new intersection is chained only with itself
-                let chain_vector: Vec<(usize, usize)> = vec![(row, column)];
-                board_chains.insert(Self::generate_id(row, column), chain_vector);
-            }
-        }
-        return board_chains;
-    }
-
     pub fn new(board_size: usize) -> Self {
         Board {
             board_size: board_size,
             board_state: Self::build_board_start(board_size),
-            board_chains: Self::build_chains_start(board_size),
+            board_chains: HashMap::new(),
             board_liberties: HashMap::new(),
             white_captured: 0,
             black_captured: 0,
@@ -358,6 +352,9 @@ mod tests {
         let captured1: Vec<(usize, usize)> = check_for_conquered(&mut test_board); //Should return 0.
         assert_eq!(captured1.len(), 0);
         game::place_stone(&mut test_board, &test_white, 2, 1);
+        game::check_for_liberties(&mut test_board);
+        game::check_for_conquered(&mut test_board);
+        game::place_stone(&mut test_board, &test_white, 2, 2);
         game::check_for_liberties(&mut test_board);
         game::check_for_conquered(&mut test_board);
         let captured2: Vec<(usize, usize)> = check_for_conquered(&mut test_board); //Should return 2
