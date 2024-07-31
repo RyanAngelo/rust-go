@@ -2,6 +2,14 @@ mod game;
 
 use game::Player;
 use game::Board;
+use bevy::prelude::*;
+
+pub struct PlayerActionPlugin;
+impl Plugin for PlayerActionPlugin {
+    fn build(&self, app: &mut App) {
+        //Add systems here
+    }
+}
 
 fn main() {
 
@@ -11,5 +19,10 @@ fn main() {
     let mut game_board: Board = Board::new(9);
 
     println!("{:?}", game_board.board_state);
+
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(PlayerActionPlugin)
+        .run();
 
 }
