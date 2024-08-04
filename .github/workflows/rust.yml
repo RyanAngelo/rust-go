@@ -12,10 +12,14 @@ env:
 jobs:
   build:
 
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        id -a
+        sudo apt-get -y install libasound2-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
