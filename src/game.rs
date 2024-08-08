@@ -151,9 +151,10 @@ pub fn get_adjacent(
                     liberties_for_chain.push(empty_space);
                 }
             }
-            player_model.player_liberties.entry(chain_key.to_string()).or_insert_with(Vec::new).extend(liberties_for_chain.into_iter());
-            println!("Liberties {:?}", player_model.player_liberties);
-        }
+            //TODO: Extend is just adding instead of replacing. Fix
+            player_model.player_liberties.insert(chain_key.to_string(), liberties_for_chain);
+        }            
+        println!("Liberties {:?}", player_model.player_liberties);
         return player_liberties;
     }
 
@@ -171,7 +172,7 @@ pub fn get_adjacent(
         let mut removed_stones: Vec<(usize, usize)> = Vec::<(usize, usize)>::new();
         for (chain_key, liberties) in player_model.player_liberties.iter() {
             println!("Checking to see if chain id {chain_key} has any liberties...");
-            if (liberties.len() == 0) {
+            if liberties.len() == 0 {
                 println!("Chain id {chain_key} has no liberties. It has been eliminated.");
                 let captured_chain = match player_model.player_chains.get(chain_key) {
                     Some(captured) => captured,
