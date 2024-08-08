@@ -2,6 +2,7 @@ mod game;
 
 use game::Player;
 use game::Board;
+use game::PlayerModel;
 use bevy::prelude::*;
 
 pub struct PlayerActionPlugin;
@@ -13,8 +14,11 @@ impl Plugin for PlayerActionPlugin {
 
 fn main() {
 
-    let mut player1: Player = Player::new(game::BLACK);
-    let mut player2: Player = Player::new(game::WHITE);
+    let black_player: Player = Player::new(crate::game::BLACK, crate::game::WHITE);
+    let mut black_player_model = PlayerModel::new(black_player);
+
+    let white_player: Player = Player::new(crate::game::WHITE, crate::game::BLACK);
+    let mut white_player_model = PlayerModel::new(white_player);
 
     let mut game_board: Board = Board::new(9);
 
