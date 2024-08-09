@@ -12,6 +12,17 @@ impl Plugin for PlayerActionPlugin {
     }
 }
 
+
+/**
+ *
+ * There are traditionaly 181 stones in Go.
+ * Traditional Board size is 19x19
+ * Also popular are 13x13 and 9x9
+ *
+ * End game scoring: A player's score is the number
+ * of stones that the player has on the board, plus
+ * the number of empty intersections surrounded by that player's stones.
+ */
 fn main() {
 
     let black_player: Player = Player::new(crate::game::BLACK, crate::game::WHITE);

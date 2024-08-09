@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap}, fmt,
+    collections::HashMap, fmt,
 };
 
 pub const EMPTY: u8 = 0;
@@ -8,16 +8,6 @@ pub const BLACK: u8 = 2;
 pub const WHITE_TERR: u8 = 3;
 pub const BLACK_TERR: u8 = 4;
 
-/**
- *
- * There are traditionaly 181 stones in Go.
- * Traditional Board size is 19x19
- * Also popular are 13x13 and 9x9
- *
- * End game scoring: A player's score is the number
- * of stones that the player has on the board, plus
- * the number of empty intersections surrounded by that player's stones.
- */
 pub fn place_stone(
     board: &mut Board,
     player_model: &mut PlayerModel,
@@ -29,11 +19,14 @@ pub fn place_stone(
         println!("Placing {:?} at location {:?}/{:?}", player_model.player.player_color, row, col);
         board.update_board_color(row, col, player_model.player.player_color);
         //board.board_state[row][col].player_color = player.player_color;
-        let friends:Vec<(usize, usize)> = get_adjacent(&mut board.board_state, board.board_size, row, col, player_model.player.player_color);
-        update_chain(&mut board.board_state, player_model, friends, row, col);
+        let friends = get_adjacent(&mut board.board_state, board.board_size, row, col, player_model.player.player_color);
+        let new_friend_chain = update_chain(&mut board.board_state, player_model, friends, row, col);
+        player_model.add_player_chain(&Board::generate_id(row, col), new_friend_chain);
         //For the opponent
-        update_player_liberties(&mut board.board_state, board.board_size, opponent_model);
-        check_for_conquered(opponent_model, &mut board.board_state);
+        let opponent_liberties = update_player_liberties(&mut board.board_state, board.board_size, opponent_model);
+        opponent_model.set_player_liberties(opponent_liberties);
+        let removed_chain_keys = check_for_conquered(opponent_model, &mut board.board_state);
+        cleanup_captured(opponent_model, removed_chain_keys);
         return true;
     } else {
         return false;
@@ -102,7 +95,7 @@ pub fn get_adjacent(
         friends: Vec<(usize, usize)>,
         row: usize,
         col: usize,
-    ) {
+    ) -> Vec<(usize, usize)> {
         //All of these friends needs to be made into a single chain
         //They will have the id of the newly placed stone
         let mut new_friend_chain: Vec<(usize, usize)> = vec![(row, col)];
@@ -119,10 +112,7 @@ pub fn get_adjacent(
                 }
             }
         }
-        //Add to the board chains our new combined chain
-        player_model.add_player_chain(&Board::generate_id(row, col), new_friend_chain);
-        println!("Player Chains {:?}", player_model.player_chains);
-
+        return new_friend_chain;
     }
 
     /**
@@ -134,7 +124,7 @@ pub fn get_adjacent(
         board_state: &mut Vec<Vec<Intersection>>,
         board_size: usize,
         player_model: &mut PlayerModel) -> HashMap<String, Vec<(usize, usize)>> {
-        let player_liberties: HashMap<String, Vec<(usize, usize)>> = HashMap::new();
+        let mut player_liberties: HashMap<String, Vec<(usize, usize)>> = HashMap::new();
         for chain_key in player_model.player_chains.keys() {
             let mut liberties_for_chain: Vec<(usize, usize)> = Vec::new();
             println!("Checking chain {chain_key}");
@@ -151,8 +141,7 @@ pub fn get_adjacent(
                     liberties_for_chain.push(empty_space);
                 }
             }
-            //TODO: Extend is just adding instead of replacing. Fix
-            player_model.player_liberties.insert(chain_key.to_string(), liberties_for_chain);
+            player_liberties.insert(chain_key.to_string(), liberties_for_chain);
         }            
         println!("Liberties {:?}", player_model.player_liberties);
         return player_liberties;
@@ -165,11 +154,14 @@ pub fn get_adjacent(
      * return false if the placement is valid
      */
     pub fn check_for_self_capture(board: &mut Board, row: usize, col: usize) -> bool {
-        return false;
+        return false; //TODO
     }
 
-    pub fn check_for_conquered(player_model: &mut PlayerModel, board_state: &mut Vec<Vec<Intersection>>) -> Vec<(usize, usize)> {
-        let mut removed_stones: Vec<(usize, usize)> = Vec::<(usize, usize)>::new();
+    pub fn check_for_conquered(
+        player_model: &mut PlayerModel, 
+        board_state: &mut Vec<Vec<Intersection>>) 
+    -> Vec<String> {
+        let mut removed_chain_keys: Vec<String> = Vec::<String>::new();
         for (chain_key, liberties) in player_model.player_liberties.iter() {
             println!("Checking to see if chain id {chain_key} has any liberties...");
             if liberties.len() == 0 {
@@ -186,16 +178,26 @@ pub fn get_adjacent(
                         //board.black_captured = board.black_captured + 1;
                         board_state[captured_location.0][captured_location.1].player_color = WHITE_TERR;
                     }
-                    removed_stones.push((board_state[captured_location.0][captured_location.1].row, board_state[captured_location.0][captured_location.1].col));
                 }
+                removed_chain_keys.push(chain_key.to_string());
             }
         }
         
-        println!("The following stones were removed {:?}", removed_stones);
+        println!("The following chains were removed {:?}", removed_chain_keys);
         //TODO: call update_prisoners as needed
-        return removed_stones;
+        return removed_chain_keys;
     }
     
+    /**
+     * Cleanup the player models that have lose chains
+     */
+    pub fn cleanup_captured(player_model: &mut PlayerModel, removed_chain_keys: Vec<String>) {
+        for chain_key in removed_chain_keys {
+            player_model.remove_player_chain(&chain_key);
+            player_model.remove_player_liberties(&chain_key);
+        }
+    }
+
 #[derive(Debug)]
 pub(crate) struct PlayerModel {
     pub player_chains: HashMap<String, Vec<(usize, usize)>>,
@@ -280,6 +282,11 @@ impl PlayerModel {
         self.player_liberties.entry(chain_key.to_string()).or_insert_with(Vec::new)
             .push(item);
     }
+
+    fn set_player_liberties(&mut self, updated_liberties: HashMap<String, Vec<(usize, usize)>>) {
+        self.player_liberties = updated_liberties;
+    }
+
 }
 /**
  * board_state represents the board using 2D vectors
@@ -375,7 +382,6 @@ impl Player {
 mod tests {
 
     use crate::game;
-    use crate::game::check_for_conquered;
     use crate::game::Board;
     use crate::game::Player;
     use crate::game::PlayerModel;
@@ -443,13 +449,10 @@ mod tests {
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 1, 0);
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 1);
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 2);
-        let captured1: Vec<(usize, usize)> = check_for_conquered(&mut black_player_model, &mut test_board.board_state); //Should return 0.
-        assert_eq!(captured1.len(), 0);
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 2, 1);
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 2, 2);
-        let captured2: Vec<(usize, usize)> = check_for_conquered(&mut black_player_model, &mut test_board.board_state); //Should return 0.
-        assert_eq!(captured2.len(), 2);
-        assert_eq!(test_board.board_state[captured2.first().unwrap().0][captured2.first().unwrap().1].player_color, WHITE_TERR);
+        assert_eq!(test_board.board_state[1][1].player_color, WHITE_TERR);
+        assert_eq!(test_board.board_state[1][2].player_color, WHITE_TERR);
     }
 
     #[test]
@@ -466,9 +469,7 @@ mod tests {
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 1);
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 0, 1);
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 0);
-        let captured1: Vec<(usize, usize)> = check_for_conquered(&mut white_player_model, &mut test_board.board_state);
-        assert_eq!(captured1.len(), 1);
-        assert_eq!(test_board.board_state[captured1.first().unwrap().0][captured1.first().unwrap().1].player_color, BLACK_TERR);
+        assert_eq!(test_board.board_state[0][0].player_color, BLACK_TERR);
     }
 
 }
