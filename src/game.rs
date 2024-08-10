@@ -8,6 +8,11 @@ pub const BLACK: u8 = 2;
 pub const WHITE_TERR: u8 = 3;
 pub const BLACK_TERR: u8 = 4;
 
+/**
+ * Place a stone on the board and run through the accompanying logic
+ * This includes checking to see if the opponent has had any chains captured.
+ * Returns true if stone has been placed, false if it has not
+ */
 pub fn place_stone(
     board: &mut Board,
     player_model: &mut PlayerModel,
@@ -18,7 +23,6 @@ pub fn place_stone(
     if board.board_state[row][col].player_color == 0 {
         println!("Placing {:?} at location {:?}/{:?}", player_model.player.player_color, row, col);
         board.update_board_color(row, col, player_model.player.player_color);
-        //board.board_state[row][col].player_color = player.player_color;
         let friends = get_adjacent(&mut board.board_state, board.board_size, row, col, player_model.player.player_color);
         let new_friend_chain = update_chain(&mut board.board_state, player_model, friends, row, col);
         player_model.add_player_chain(&Board::generate_id(row, col), new_friend_chain);
@@ -104,7 +108,7 @@ pub fn get_adjacent(
             let friend_chain: Option<(String, Vec<(usize, usize)>)> = player_model.remove_player_chain(&friend_chain_id);
             player_model.remove_player_liberties(&friend_chain_id);
             if let Some((old_chain, vec)) = friend_chain {
-                println!("Merging old chain {:?}", old_chain);
+                println!("Merging old chain {:?} with new chain id{:?}", old_chain, &friend_chain_id);
                 for (friend_row, friend_col) in vec {
                     //All of the friends of this chain will now belong to the same chain with the id of the new stone
                     board_state[friend_row][friend_col].chain_id = board_state[row][col].chain_id.clone();
@@ -172,10 +176,8 @@ pub fn get_adjacent(
                 };
                 for captured_location in captured_chain {
                     if board_state[captured_location.0][captured_location.1].player_color == WHITE {
-                        //board.white_captured = board.white_captured + 1;
                         board_state[captured_location.0][captured_location.1].player_color = BLACK_TERR;
                     } else if board_state[captured_location.0][captured_location.1].player_color == BLACK {
-                        //board.black_captured = board.black_captured + 1;
                         board_state[captured_location.0][captured_location.1].player_color = WHITE_TERR;
                     }
                 }
