@@ -1,6 +1,5 @@
 mod game;
 
-use game::Player;
 use game::Board;
 use game::PlayerModel;
 use bevy::prelude::*;
@@ -12,6 +11,14 @@ impl Plugin for PlayerActionPlugin {
     }
 }
 
+fn create_commands(mut commands: Commands) {
+    let player_white_model = PlayerModel::new(crate::game::WHITE);
+    let player_black_model = PlayerModel::new(crate::game::BLACK);
+    let game_board: Board = Board::new(9);
+    commands.spawn(player_white_model);
+    commands.spawn(player_black_model);
+    commands.spawn(game_board);
+}
 
 /**
  *
@@ -24,16 +31,6 @@ impl Plugin for PlayerActionPlugin {
  * the number of empty intersections surrounded by that player's stones.
  */
 fn main() {
-
-    let black_player: Player = Player::new(crate::game::BLACK, crate::game::WHITE);
-    let mut black_player_model = PlayerModel::new(black_player);
-
-    let white_player: Player = Player::new(crate::game::WHITE, crate::game::BLACK);
-    let mut white_player_model = PlayerModel::new(white_player);
-
-    let mut game_board: Board = Board::new(9);
-
-    println!("{:?}", game_board.board_state);
 
     App::new()
         .add_plugins(DefaultPlugins)

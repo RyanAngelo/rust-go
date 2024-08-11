@@ -2,6 +2,8 @@ use std::{
     collections::HashMap, fmt,
 };
 
+use bevy::prelude::Component;
+
 pub const EMPTY: u8 = 0;
 pub const WHITE: u8 = 1;
 pub const BLACK: u8 = 2;
@@ -201,18 +203,28 @@ pub fn get_adjacent(
     }
 
 #[derive(Debug)]
+#[derive(Component)]
 pub(crate) struct PlayerModel {
-    pub player_chains: HashMap<String, Vec<(usize, usize)>>,
-    pub player_liberties: HashMap<String, Vec<(usize, usize)>>,
-    pub player: Player,
+    player_chains: HashMap<String, Vec<(usize, usize)>>,
+    player_liberties: HashMap<String, Vec<(usize, usize)>>,
+    player: Player,
 }
 
 impl PlayerModel {
-    pub fn new(player: Player) -> Self {
+    pub fn new(player_color: u8) -> Self {
+        let mut new_player_color=0;
+        let mut opponent_color=0;
+        if player_color == 1 {
+            new_player_color = 1;
+            opponent_color = 2;
+        } else {
+            new_player_color = 2;
+            opponent_color = 1;
+        }
         PlayerModel {
             player_chains: HashMap::new(),
             player_liberties: HashMap::new(),
-            player: player,
+            player: Player::new(new_player_color, opponent_color),
         }
     }
 
@@ -296,7 +308,8 @@ impl PlayerModel {
  * 1 means white stone
  * 2 means black stone
  */
-pub(crate) struct Board {
+#[derive(Component)]
+ pub(crate) struct Board {
     pub board_size: usize,
     pub board_state: Vec<Vec<Intersection>>,
     pub white_captured: u8,
@@ -341,6 +354,7 @@ impl Board {
 }
 
 #[derive(Debug)]
+#[derive(Component)]
 pub(crate) struct Intersection {
     player_color: u8,
     chain_id: String,
@@ -366,9 +380,10 @@ impl fmt::Display for Intersection {
 }
 
 #[derive(Debug)]
+#[derive(Component)]
 pub(crate) struct Player {
-    player_color: u8,
-    opponent_color: u8,
+    pub(crate) player_color: u8,
+    pub(crate) opponent_color: u8,
 }
 
 impl Player {
@@ -385,7 +400,6 @@ mod tests {
 
     use crate::game;
     use crate::game::Board;
-    use crate::game::Player;
     use crate::game::PlayerModel;
     use crate::game::BLACK_TERR;
     use crate::game::WHITE_TERR;
@@ -394,11 +408,8 @@ mod tests {
     fn test_place_stone() {
         let mut test_board: Board = Board::new(9);
 
-        let black_player: Player = Player::new(crate::game::BLACK, crate::game::WHITE);
-        let mut black_player_model = PlayerModel::new(black_player);
-
-        let white_player: Player = Player::new(crate::game::WHITE, crate::game::BLACK);
-        let mut white_player_model = PlayerModel::new(white_player);
+        let mut black_player_model = PlayerModel::new(crate::game::BLACK);
+        let mut white_player_model = PlayerModel::new(crate::game::WHITE);
 
         let result1 = game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 2, 2);
         assert_eq!(
@@ -420,11 +431,8 @@ mod tests {
     fn test_check_for_chain() {
         let mut test_board: Board = Board::new(3);
 
-        let black_player: Player = Player::new(crate::game::BLACK, crate::game::WHITE);
-        let mut black_player_model = PlayerModel::new(black_player);
-
-        let white_player: Player = Player::new(crate::game::WHITE, crate::game::BLACK);
-        let mut white_player_model = PlayerModel::new(white_player);
+        let mut black_player_model = PlayerModel::new(crate::game::BLACK);
+        let mut white_player_model = PlayerModel::new(crate::game::WHITE);
 
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 0);
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 1);
@@ -439,11 +447,8 @@ mod tests {
     fn test_check_for_capture() {
         let mut test_board: Board = Board::new(3);
 
-        let black_player: Player = Player::new(crate::game::BLACK, crate::game::WHITE);
-        let mut black_player_model = PlayerModel::new(black_player);
-
-        let white_player: Player = Player::new(crate::game::WHITE, crate::game::BLACK);
-        let mut white_player_model = PlayerModel::new(white_player);
+        let mut black_player_model = PlayerModel::new(crate::game::BLACK);
+        let mut white_player_model = PlayerModel::new(crate::game::WHITE);
 
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 0);
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 1);
@@ -461,11 +466,8 @@ mod tests {
     fn test_check_for_capture_corner() {
         let mut test_board: Board = Board::new(2);
 
-        let black_player: Player = Player::new(crate::game::BLACK, crate::game::WHITE);
-        let mut black_player_model = PlayerModel::new(black_player);
-
-        let white_player: Player = Player::new(crate::game::WHITE, crate::game::BLACK);
-        let mut white_player_model = PlayerModel::new(white_player);
+        let mut black_player_model = PlayerModel::new(crate::game::BLACK);
+        let mut white_player_model = PlayerModel::new(crate::game::WHITE);
 
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 0);
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 1);
