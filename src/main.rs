@@ -8,10 +8,12 @@ pub struct PlayerActionPlugin;
 impl Plugin for PlayerActionPlugin {
     fn build(&self, app: &mut App) {
         //Add systems here
+        app.add_systems(Startup, create_gameboard);
+
     }
 }
 
-fn create_commands(mut commands: Commands) {
+fn create_gameboard(mut commands: Commands) {
     let player_white_model = PlayerModel::new(crate::game::WHITE);
     let player_black_model = PlayerModel::new(crate::game::BLACK);
     let game_board: Board = Board::new(9);
