@@ -192,7 +192,26 @@ fn spawn_nested_text_bundle(builder: &mut ChildBuilder, font: Handle<Font>, text
             color: Color::BLACK,
         },
     ));
-}   
+}
+
+fn button_interaction_system(
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<Button>)>,
+) {
+    for (interaction, mut color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
+                *color = Color::rgb(0.35, 0.75, 0.35).into(); // Change color when clicked
+                println!("Button clicked!");
+            }
+            Interaction::Hovered => {
+                *color = Color::rgb(0.75, 0.75, 0.75).into(); // Change color when hovered
+            }
+            Interaction::None => {
+                *color = Color::rgb(0.25, 0.25, 0.75).into(); // Default color
+            }
+        }
+    }
+}
 
 /**
  *
@@ -209,5 +228,6 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(PlayerActionPlugin)
+        .add_systems(Update, button_interaction_system)
         .run();
 }

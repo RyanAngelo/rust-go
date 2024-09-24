@@ -15,3 +15,10 @@ cargo build
 
 ## Running
 
+### Dynamic linking
+This is the most impactful compilation time decrease! 
+You can compile bevy as dynamic library, preventing it from having to be statically linked each time you rebuild 
+your project. You can enable this with the dynamic_linking feature flag.
+https://bevyengine.org/learn/quick-start/getting-started/setup/
+
+cargo run --features "bevy/dynamic_linking"
