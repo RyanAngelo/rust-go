@@ -228,6 +228,10 @@ impl PlayerModel {
         }
     }
 
+    pub fn get_player_color(&self) -> u8 {
+        self.player.player_color
+    }
+
     fn update_player_chains(&mut self, chain_key: &str, index: usize, new_value: (usize, usize)) {
         if let Some(vec) = self.player_chains.get_mut(chain_key) {
             if let Some(pair) = vec.get_mut(index) {

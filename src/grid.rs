@@ -1,18 +1,18 @@
-use bevy::prelude::*;
-use crate::game::{Board, PlayerModel, Player};
+use crate::game::{self, Board, Player, PlayerModel};
 use bevy::color::palettes::css::*;
+use bevy::prelude::*;
 
 // Component to track grid position
 #[derive(Component)]
-struct GridSquare {
+pub struct GridSquare {
     row: usize,
     col: usize,
 }
 
 // Plugin to handle game initialization and grid interactions
-pub struct GamePlugin;
+pub struct GridPlugin;
 
-impl Plugin for GamePlugin {
+impl Plugin for GridPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, create_gameboard)
             .add_systems(Startup, spawn_layout)
@@ -22,8 +22,8 @@ impl Plugin for GamePlugin {
 
 // Initialize the game board and players
 fn create_gameboard(mut commands: Commands) {
-    let player_white_model = PlayerModel::new(crate::game::WHITE);
-    let player_black_model = PlayerModel::new(crate::game::BLACK);
+    let player_white_model = PlayerModel::new(game::WHITE);
+    let player_black_model = PlayerModel::new(game::BLACK);
     let game_board: Board = Board::new(9);
     commands.spawn(player_white_model);
     commands.spawn(player_black_model);
@@ -47,7 +47,7 @@ fn spawn_layout(mut commands: Commands) {
                 align_items: AlignItems::Center,
                 ..default()
             },
-            background_color: DARK_SLATE_GRAY.into(), // Debug color
+            background_color: BLACK.into(),
             ..default()
         })
         .with_children(|parent| {
@@ -55,22 +55,22 @@ fn spawn_layout(mut commands: Commands) {
             parent
                 .spawn(NodeBundle {
                     style: Style {
-                        width: Val::Px(600.0),  // Fixed size for testing
-                        height: Val::Px(600.0), // Fixed size for testing
+                        width: Val::Px(600.0),
+                        height: Val::Px(600.0),
                         display: Display::Grid,
                         grid_template_columns: RepeatedGridTrack::flex(cols, 1.0),
                         grid_template_rows: RepeatedGridTrack::flex(rows, 1.0),
                         padding: UiRect::all(Val::Px(10.0)),
                         ..default()
                     },
-                    background_color: BLACK.into(),
+                    background_color: DARK_GREY.into(),
                     ..default()
                 })
                 .with_children(|builder| {
                     // Create grid squares
                     for row in 0..rows {
                         for col in 0..cols {
-                            spawn_grid_square(builder, row as usize, col as usize);
+                            spawn_grid_square(builder, row.into(), col.into());
                         }
                     }
                 });
@@ -113,32 +113,42 @@ fn grid_button_interaction(
         (Changed<Interaction>, With<Button>),
     >,
     mut board: Query<&mut Board>,
-    mut white_player: Query<&mut PlayerModel, With<Player>>,
-    mut black_player: Query<&mut PlayerModel, Without<Player>>,
+    mut player_query: Query<&mut PlayerModel, With<Player>>,
 ) {
     for (interaction, grid_square, mut color) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
-                println!("Square clicked: row={}, col={}", grid_square.row, grid_square.col);
+                println!(
+                    "Square clicked: row={}, col={}",
+                    grid_square.row, grid_square.col
+                );
                 if let Ok(mut board) = board.get_single_mut() {
-                    if let Ok(mut white_player) = white_player.get_single_mut() {
-                        if let Ok(mut black_player) = black_player.get_single_mut() {
-                            let row = grid_square.row;
-                            let col = grid_square.col;
-                            let placed = crate::game::place_stone(
-                                &mut board,
-                                &mut white_player,
-                                &mut black_player,
-                                row,
-                                col,
-                            );
-                            
-                            if placed {
-                                *color = Color::rgb(0.35, 0.75, 0.35).into();
-                                println!("Stone placed successfully");
-                            } else {
-                                println!("Failed to place stone");
-                            }
+                    // Get players one at a time to avoid multiple mutable borrows
+                    let mut white_player = None;
+                    let mut black_player = None;
+
+                    for player_model in player_query.iter_mut() {
+                        if player_model.get_player_color() == game::WHITE {
+                            white_player = Some(player_model);
+                        } else if player_model.get_player_color() == game::BLACK {
+                            black_player = Some(player_model);
+                        }
+                    }
+                    //TODO: This needs to be passing the correct player_models rather than just white then black
+                    if let (Some(mut white), Some(mut black)) = (white_player, black_player) {
+                        let placed = game::place_stone(
+                            &mut board,
+                            &mut white,
+                            &mut black,
+                            grid_square.row,
+                            grid_square.col,
+                        );
+
+                        if placed {
+                            *color = Color::rgb(0.35, 0.75, 0.35).into();
+                            println!("Stone placed successfully");
+                        } else {
+                            println!("Failed to place stone");
                         }
                     }
                 }

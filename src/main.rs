@@ -2,11 +2,11 @@ mod game;
 mod grid;
 
 use bevy::prelude::*;
-use grid::GamePlugin;
+use grid::GridPlugin;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(GamePlugin)
+        .add_plugins(GridPlugin)
         .run();
 }
