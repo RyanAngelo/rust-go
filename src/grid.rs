@@ -2,6 +2,9 @@ use crate::game::{self, Board, Player, PlayerModel};
 use bevy::color::palettes::css::*;
 use bevy::prelude::*;
 
+pub const BOARD_SIZE: usize = 9;
+
+
 /**
  * Component to track grid position
  */
@@ -31,7 +34,7 @@ impl Plugin for GridPlugin {
 fn create_gameboard(mut commands: Commands) {
     let player_white_model = PlayerModel::new(game::WHITE);
     let player_black_model = PlayerModel::new(game::BLACK);
-    let game_board: Board = Board::new(9);
+    let game_board: Board = Board::new(BOARD_SIZE);
     commands.spawn((player_white_model, Player { player_color: game::WHITE, opponent_color: game::BLACK }));
     commands.spawn((player_black_model, Player { player_color: game::BLACK, opponent_color: game::WHITE }));
     commands.spawn(game_board);
@@ -45,8 +48,8 @@ fn create_gameboard(mut commands: Commands) {
 fn spawn_layout(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
-    let rows = 9;
-    let cols = 9;
+    let rows = BOARD_SIZE;
+    let cols = BOARD_SIZE;
 
     commands
         .spawn(NodeBundle {
