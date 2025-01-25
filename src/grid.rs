@@ -161,31 +161,23 @@ struct StoneBackground;
  * - Black for the black player
  */
 fn grid_button_interaction(
-    mut interaction_query: Query<
+    interaction_query: Query<
         (&Interaction, &GridSquare, Entity),
         (Changed<Interaction>, With<Button>),
     >,
+    grid_squares: Query<(&GridSquare, Entity), With<Button>>,
     mut stone_query: Query<(&mut BackgroundColor, &Parent), With<StoneBackground>>,
     mut board: Query<&mut Board>,
     mut player_query: Query<&mut PlayerModel, With<Player>>,
 ) {
-    for (interaction, grid_square, button_entity) in interaction_query.iter_mut() {
-        // Get the stone background entity that's a child of this specific button
+    for (interaction, grid_square, button_entity) in interaction_query.iter() {
         if let Some(mut stone_color) = stone_query.iter_mut()
             .find(|(_, parent)| parent.get() == button_entity) {
             match *interaction {
                 Interaction::Pressed => {
-                    println!("Square clicked: row={}, col={}", grid_square.row, grid_square.col);
                     if let Ok(mut board) = board.get_single_mut() {
-                        println!("Current turn: {}", if board.is_white_turn { "White" } else { "Black" });
-                        
                         let mut current_player = None;
                         let mut opponent_player = None;
-
-                        // Debug print for players
-                        for player_model in player_query.iter() {
-                            println!("Found player with color: {}", player_model.get_player_color());
-                        }
 
                         for player_model in player_query.iter_mut() {
                             if (board.is_white_turn && player_model.get_player_color() == game::WHITE) ||
@@ -197,7 +189,6 @@ fn grid_button_interaction(
                         }
 
                         if let (Some(mut current), Some(mut opponent)) = (current_player, opponent_player) {
-                            println!("Attempting to place stone for player: {}", current.get_player_color());
                             let placed = game::place_stone(
                                 &mut board,
                                 &mut current,
@@ -207,18 +198,29 @@ fn grid_button_interaction(
                             );
 
                             if placed {
-                                // Update the stone background color
-                                if current.get_player_color() == game::WHITE {
-                                    *stone_color.0 = Color::srgb(1.0, 1.0, 1.0).into(); // White stone
-                                } else {
-                                    *stone_color.0 = Color::srgb(0.0, 0.0, 0.0).into(); // Black stone
+                                // Check the state of all squares and update colors
+                                for row in 0..board.board_size {
+                                    for col in 0..board.board_size {
+                                        let color = board.board_state[row][col].get_player_color();
+                                        if let Some(mut square_color) = stone_query.iter_mut()
+                                            .find(|(_, parent)| {
+                                                if let Ok((grid_square, _)) = grid_squares.get(parent.get()) {
+                                                    grid_square.row == row && grid_square.col == col
+                                                } else {
+                                                    false
+                                                }
+                                            }) {
+                                            match color {
+                                                game::WHITE => *square_color.0 = Color::srgb(1.0, 1.0, 1.0).into(),
+                                                game::BLACK => *square_color.0 = Color::srgb(0.0, 0.0, 0.0).into(),
+                                                game::WHITE_TERR => *square_color.0 = Color::srgb(0.8, 0.8, 0.8).into(),
+                                                game::BLACK_TERR => *square_color.0 = Color::srgb(0.3, 0.3, 0.3).into(),
+                                                _ => {}
+                                            }
+                                        }
+                                    }
                                 }
-                                println!("Stone placed successfully");
-                            } else {
-                                println!("Failed to place stone");
                             }
-                        } else {
-                            println!("Failed to get current and opponent players");
                         }
                     }
                 }

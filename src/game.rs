@@ -410,6 +410,10 @@ impl Intersection {
             col: col,
         }
     }
+
+    pub fn get_player_color(&self) -> u8 {
+        return self.player_color;
+    }
 }
 
 impl fmt::Display for Intersection {
