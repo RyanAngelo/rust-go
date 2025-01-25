@@ -43,13 +43,11 @@ fn create_gameboard(mut commands: Commands) {
  * The board is centered on screen with a dark background.
  */
 fn spawn_layout(mut commands: Commands) {
-    // Spawn camera
     commands.spawn(Camera2dBundle::default());
 
     let rows = 9;
     let cols = 9;
 
-    // Root node
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -64,7 +62,7 @@ fn spawn_layout(mut commands: Commands) {
             ..default()
         })
         .with_children(|parent| {
-            // Add header text
+            // Header text
             parent.spawn(TextBundle::from_section(
                 "GO",
                 TextStyle {
@@ -80,68 +78,88 @@ fn spawn_layout(mut commands: Commands) {
                     style: Style {
                         width: Val::Px(600.0),
                         height: Val::Px(600.0),
-                        display: Display::Grid,
-                        grid_template_columns: RepeatedGridTrack::flex(cols, 1.0),
-                        grid_template_rows: RepeatedGridTrack::flex(rows, 1.0),
-                        padding: UiRect::all(Val::Px(10.0)),
+                        position_type: PositionType::Relative,
+                        padding: UiRect::all(Val::Px(20.0)),
                         margin: UiRect::top(Val::Px(20.0)),
                         ..default()
                     },
-                    background_color: DARK_GREY.into(),
+                    background_color: Color::rgb(0.87, 0.68, 0.34).into(), // Wooden board color
                     ..default()
                 })
-                .with_children(|builder| {
-                    // Create grid squares
+                .with_children(|parent| {
+                    // Grid lines
+                    for i in 0..rows {
+                        // Horizontal lines
+                        parent.spawn(NodeBundle {
+                            style: Style {
+                                position_type: PositionType::Absolute,
+                                width: Val::Percent(100.0),
+                                height: Val::Px(2.0),
+                                top: Val::Percent(i as f32 * (100.0 / (rows - 1) as f32)),
+                                ..default()
+                            },
+                            background_color: Color::rgb(0.1, 0.1, 0.1).into(),
+                            ..default()
+                        });
+                        
+                        // Vertical lines
+                        parent.spawn(NodeBundle {
+                            style: Style {
+                                position_type: PositionType::Absolute,
+                                width: Val::Px(2.0),
+                                height: Val::Percent(100.0),
+                                left: Val::Percent(i as f32 * (100.0 / (cols - 1) as f32)),
+                                ..default()
+                            },
+                            background_color: Color::rgb(0.1, 0.1, 0.1).into(),
+                            ..default()
+                        });
+                    }
+
+                    // Spawn intersection points
                     for row in 0..rows {
                         for col in 0..cols {
-                            spawn_grid_square(builder, row.into(), col.into());
+                            spawn_intersection(parent, row, col, rows, cols);
                         }
                     }
                 });
         });
 }
 
-/**
- * Creates an individual square for the game board grid.
- * Each square is a button that can be interacted with to place stones.
- * 
- * @param builder - The ChildBuilder to spawn the square into
- * @param row - The row position of this square on the board
- * @param col - The column position of this square on the board
- */
-fn spawn_grid_square(builder: &mut ChildBuilder, row: usize, col: usize) {
-    builder
-        .spawn((
-            ButtonBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    border: UiRect::all(Val::Px(1.0)),
-                    ..default()
-                },
-                border_color: Color::rgb(1.0, 0.65, 0.0).into(),
-                background_color: Color::srgb(0.8, 0.8, 0.8).into(),
+fn spawn_intersection(parent: &mut ChildBuilder, row: usize, col: usize, rows: usize, cols: usize) {
+    parent.spawn((
+        ButtonBundle {
+            style: Style {
+                width: Val::Px(30.0),
+                height: Val::Px(30.0),
+                position_type: PositionType::Absolute,
+                left: Val::Percent(col as f32 * (100.0 / (cols - 1) as f32) - 2.0),
+                top: Val::Percent(row as f32 * (100.0 / (rows - 1) as f32) - 2.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 ..default()
             },
-            GridSquare { row, col },
-        ))
-        .with_children(|parent| {
-            // Stone background (inner square)
-            parent.spawn((
-                NodeBundle {
-                    style: Style {
-                        width: Val::Percent(90.0),
-                        height: Val::Percent(90.0),
-                        ..default()
-                    },
-                    background_color: Color::srgb(0.8, 0.8, 0.8).into(),
+            background_color: Color::NONE.into(),
+            ..default()
+        },
+        GridSquare { row, col },
+    ))
+    .with_children(|parent| {
+        // Stone visual (initially invisible)
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(28.0),
+                    height: Val::Px(28.0),
+                    border: UiRect::all(Val::Px(0.0)),
                     ..default()
                 },
-                StoneBackground,
-            ));
-        });
+                background_color: Color::srgba(0.0, 0.0, 0.0, 0.0).into(),
+                ..default()
+            },
+            StoneBackground,
+        ));
+    });
 }
 
 // Add this marker component at the top with other components
@@ -173,79 +191,53 @@ fn grid_button_interaction(
     for (interaction, grid_square, button_entity) in interaction_query.iter() {
         if let Some(mut stone_color) = stone_query.iter_mut()
             .find(|(_, parent)| parent.get() == button_entity) {
-            match *interaction {
-                Interaction::Pressed => {
-                    if let Ok(mut board) = board.get_single_mut() {
-                        let mut current_player = None;
-                        let mut opponent_player = None;
+            if let Interaction::Pressed = *interaction {
+                if let Ok(mut board) = board.get_single_mut() {
+                    let mut current_player = None;
+                    let mut opponent_player = None;
 
-                        for player_model in player_query.iter_mut() {
-                            if (board.is_white_turn && player_model.get_player_color() == game::WHITE) ||
-                               (!board.is_white_turn && player_model.get_player_color() == game::BLACK) {
-                                current_player = Some(player_model);
-                            } else {
-                                opponent_player = Some(player_model);
-                            }
+                    for player_model in player_query.iter_mut() {
+                        if (board.is_white_turn && player_model.get_player_color() == game::WHITE) ||
+                           (!board.is_white_turn && player_model.get_player_color() == game::BLACK) {
+                            current_player = Some(player_model);
+                        } else {
+                            opponent_player = Some(player_model);
                         }
+                    }
 
-                        if let (Some(mut current), Some(mut opponent)) = (current_player, opponent_player) {
-                            let placed = game::place_stone(
-                                &mut board,
-                                &mut current,
-                                &mut opponent,
-                                grid_square.row,
-                                grid_square.col,
-                            );
+                    if let (Some(mut current), Some(mut opponent)) = (current_player, opponent_player) {
+                        let placed = game::place_stone(
+                            &mut board,
+                            &mut current,
+                            &mut opponent,
+                            grid_square.row,
+                            grid_square.col,
+                        );
 
-                            if placed {
-                                // Check the state of all squares and update colors
-                                for row in 0..board.board_size {
-                                    for col in 0..board.board_size {
-                                        let color = board.board_state[row][col].get_player_color();
-                                        if let Some(mut square_color) = stone_query.iter_mut()
-                                            .find(|(_, parent)| {
-                                                if let Ok((grid_square, _)) = grid_squares.get(parent.get()) {
-                                                    grid_square.row == row && grid_square.col == col
-                                                } else {
-                                                    false
-                                                }
-                                            }) {
-                                            match color {
-                                                game::WHITE => *square_color.0 = Color::srgb(1.0, 1.0, 1.0).into(),
-                                                game::BLACK => *square_color.0 = Color::srgb(0.0, 0.0, 0.0).into(),
-                                                game::WHITE_TERR => *square_color.0 = Color::srgb(0.9, 0.9, 0.9).into(),
-                                                game::BLACK_TERR => *square_color.0 = Color::srgb(0.2, 0.2, 0.2).into(),
-                                                game::EMPTY => *square_color.0 = Color::srgb(0.8, 0.8, 0.8).into(),
-                                                _ => {}
+                        if placed {
+                            // Update all stones
+                            for row in 0..board.board_size {
+                                for col in 0..board.board_size {
+                                    let color = board.board_state[row][col].get_player_color();
+                                    if let Some(mut square_color) = stone_query.iter_mut()
+                                        .find(|(_, parent)| {
+                                            if let Ok((grid_square, _)) = grid_squares.get(parent.get()) {
+                                                grid_square.row == row && grid_square.col == col
+                                            } else {
+                                                false
                                             }
+                                        }) {
+                                        match color {
+                                            game::WHITE => *square_color.0 = Color::rgba(1.0, 1.0, 1.0, 1.0).into(),
+                                            game::BLACK => *square_color.0 = Color::rgba(0.0, 0.0, 0.0, 1.0).into(),
+                                            game::WHITE_TERR => *square_color.0 = Color::rgba(0.9, 0.9, 0.9, 0.8).into(),
+                                            game::BLACK_TERR => *square_color.0 = Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
+                                            game::EMPTY => *square_color.0 = Color::rgba(0.0, 0.0, 0.0, 0.0).into(),
+                                            _ => {}
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-                Interaction::Hovered => {
-                    if let Ok(board) = board.get_single() {
-                        // Only show hover effect on empty squares
-                        let square_state = board.board_state[grid_square.row][grid_square.col].get_player_color();
-                        if square_state == game::EMPTY {
-                            if board.is_white_turn {
-                                *stone_color.0 = Color::srgb(0.9, 0.9, 0.9).into();
-                            } else {
-                                *stone_color.0 = Color::srgb(0.3, 0.3, 0.3).into();
-                            }
-                        }
-                    }
-                }
-                Interaction::None => {
-                    // Only reset empty squares
-                    let square_state = board.get_single().unwrap()
-                        .board_state[grid_square.row][grid_square.col].get_player_color();
-                    if square_state == game::EMPTY {
-                        if stone_color.0 .0 == Color::srgb(0.9, 0.9, 0.9) || 
-                           stone_color.0 .0 == Color::srgb(0.3, 0.3, 0.3) {
-                            *stone_color.0 = Color::srgb(0.8, 0.8, 0.8).into();
                         }
                     }
                 }
