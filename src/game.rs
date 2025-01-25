@@ -428,17 +428,20 @@ mod tests {
     #[test]
     fn test_place_stone() {
         let mut test_board: Board = Board::new(9);
-
         let mut black_player_model = PlayerModel::new(crate::game::BLACK);
         let mut white_player_model = PlayerModel::new(crate::game::WHITE);
 
+        test_board.toggle_turn();
         let result1 = game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 2, 2);
+        test_board.toggle_turn();
         assert_eq!(
             test_board.board_state[2][2].player_color,
             crate::game::BLACK
         );
         let result2 = game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 8, 8);
+        test_board.toggle_turn();
         let result3 = game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 8, 8);
+        test_board.toggle_turn();
         assert_eq!(
             test_board.board_state[8][8].player_color,
             crate::game::BLACK
@@ -456,8 +459,11 @@ mod tests {
         let mut white_player_model = PlayerModel::new(crate::game::WHITE);
 
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 0);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 1);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 2);
+        test_board.toggle_turn();
         assert_eq!(test_board.board_state[0][0].chain_id, test_board.board_state[0][1].chain_id);
         assert_eq!(test_board.board_state[0][1].chain_id, test_board.board_state[0][2].chain_id);
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 1, 2);
@@ -472,12 +478,17 @@ mod tests {
         let mut white_player_model = PlayerModel::new(crate::game::WHITE);
 
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 0);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 1);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 2);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 1, 0);
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 1);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 2);
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 2, 1);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 2, 2);
         assert_eq!(test_board.board_state[1][1].player_color, WHITE_TERR);
         assert_eq!(test_board.board_state[1][2].player_color, WHITE_TERR);
@@ -489,11 +500,13 @@ mod tests {
 
         let mut black_player_model = PlayerModel::new(crate::game::BLACK);
         let mut white_player_model = PlayerModel::new(crate::game::WHITE);
-
         game::place_stone(&mut test_board, &mut white_player_model, &mut black_player_model, 0, 0);
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 1);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 0, 1);
+        test_board.toggle_turn();
         game::place_stone(&mut test_board, &mut black_player_model, &mut white_player_model, 1, 0);
+        test_board.toggle_turn();
         assert_eq!(test_board.board_state[0][0].player_color, BLACK_TERR);
     }
 
