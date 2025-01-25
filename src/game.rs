@@ -442,9 +442,12 @@ impl Player {
 mod tests {
 
     use crate::game;
+    use crate::game::place_stone;
     use crate::game::Board;
     use crate::game::PlayerModel;
+    use crate::game::BLACK;
     use crate::game::BLACK_TERR;
+    use crate::game::WHITE;
     use crate::game::WHITE_TERR;
 
     #[test]
@@ -579,4 +582,119 @@ mod tests {
         assert!(game::check_for_self_capture(&mut test_board3, 0, 0));
     }
 
+    #[test]
+    fn test_board_initialization() {
+        let board = Board::new(9);
+        
+        // Check board size
+        assert_eq!(board.board_size, 9);
+        
+        // Check initial turn
+        assert!(board.is_white_turn);
+        
+        // Check all intersections are empty
+        for row in 0..9 {
+            for col in 0..9 {
+                assert_eq!(board.board_state[row][col].get_player_color(), game::EMPTY);
+            }
+        }
+    }
+
+    #[test]
+    fn test_player_model_initialization() {
+        let white_player = PlayerModel::new(WHITE);
+        let black_player = PlayerModel::new(BLACK);
+        
+        assert_eq!(white_player.get_player_color(), WHITE);
+        assert_eq!(black_player.get_player_color(), BLACK);
+        
+        // Check chains and liberties are empty initially
+        assert!(white_player.player_chains.is_empty());
+        assert!(white_player.player_liberties.is_empty());
+        assert!(black_player.player_chains.is_empty());
+        assert!(black_player.player_liberties.is_empty());
+    }
+
+    #[test]
+    fn test_turn_toggling() {
+        let mut board = Board::new(9);
+        assert!(board.is_white_turn);
+        
+        board.toggle_turn();
+        assert!(!board.is_white_turn);
+        
+        board.toggle_turn();
+        assert!(board.is_white_turn);
+    }
+
+    #[test]
+    fn test_invalid_stone_placement() {
+        let mut board = Board::new(9);
+        let mut white_player = PlayerModel::new(WHITE);
+        let mut black_player = PlayerModel::new(BLACK);
+
+        // Place stone successfully
+        assert!(place_stone(&mut board, &mut white_player, &mut black_player, 0, 0));
+        
+        // Try to place stone in occupied position
+        assert!(!place_stone(&mut board, &mut black_player, &mut white_player, 0, 0));
+        
+        // Try to place stone out of turn
+        assert!(!place_stone(&mut board, &mut white_player, &mut black_player, 0, 1));
+    }
+
+    #[test]
+    fn test_chain_formation() {
+        let mut board = Board::new(9);
+        let mut white_player = PlayerModel::new(WHITE);
+        let mut black_player = PlayerModel::new(BLACK);
+
+        // Create a chain of three stones
+        place_stone(&mut board, &mut white_player, &mut black_player, 0, 0);
+        board.toggle_turn();
+        place_stone(&mut board, &mut white_player, &mut black_player, 0, 1);
+        board.toggle_turn();
+        place_stone(&mut board, &mut white_player, &mut black_player, 0, 2);
+        board.toggle_turn();
+
+        // Check that all stones are in the same chain
+        let chain_id = board.board_state[0][0].chain_id.clone();
+        assert_eq!(board.board_state[0][1].chain_id, chain_id);
+        assert_eq!(board.board_state[0][2].chain_id, chain_id);
+        
+        // Verify the chain exists in player_chains
+        assert!(white_player.player_chains.contains_key(&chain_id));
+        assert_eq!(white_player.player_chains.get(&chain_id).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn test_multiple_captures() {
+        let mut board = Board::new(9);
+        let mut white_player = PlayerModel::new(WHITE);
+        let mut black_player = PlayerModel::new(BLACK);
+
+        // Set up a position where multiple stones can be captured
+        // Black stones at (1,1) and (2,1)
+        board.toggle_turn();
+        place_stone(&mut board, &mut black_player, &mut white_player, 1, 1);
+        board.toggle_turn();
+        place_stone(&mut board, &mut black_player, &mut white_player, 2, 1);
+
+        // Surround with white stones
+        place_stone(&mut board, &mut white_player, &mut black_player, 0, 1);
+        board.toggle_turn();
+        place_stone(&mut board, &mut white_player, &mut black_player, 1, 0);
+        board.toggle_turn();
+        place_stone(&mut board, &mut white_player, &mut black_player, 1, 2);
+        board.toggle_turn();
+        place_stone(&mut board, &mut white_player, &mut black_player, 2, 0);
+        board.toggle_turn();
+        place_stone(&mut board, &mut white_player, &mut black_player, 2, 2);
+        board.toggle_turn();
+        place_stone(&mut board, &mut white_player, &mut black_player, 3, 1);
+
+        // Check that both black stones were captured
+        assert_eq!(board.board_state[1][1].get_player_color(), WHITE_TERR);
+        assert_eq!(board.board_state[2][1].get_player_color(), WHITE_TERR);
+    }
 }
