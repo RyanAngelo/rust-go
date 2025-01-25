@@ -245,15 +245,11 @@ pub(crate) struct PlayerModel {
 
 impl PlayerModel {
     pub fn new(player_color: u8) -> Self {
-        let mut new_player_color=0;
-        let mut opponent_color=0;
-        if player_color == 1 {
-            new_player_color = 1;
-            opponent_color = 2;
+        let (new_player_color, opponent_color) = if player_color == 1 {
+            (1, 2)
         } else {
-            new_player_color = 2;
-            opponent_color = 1;
-        }
+            (2, 1)
+        };
         PlayerModel {
             player_chains: HashMap::new(),
             player_liberties: HashMap::new(),

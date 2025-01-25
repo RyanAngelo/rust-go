@@ -32,8 +32,8 @@ fn create_gameboard(mut commands: Commands) {
     let player_white_model = PlayerModel::new(game::WHITE);
     let player_black_model = PlayerModel::new(game::BLACK);
     let game_board: Board = Board::new(9);
-    commands.spawn(player_white_model);
-    commands.spawn(player_black_model);
+    commands.spawn((player_white_model, Player { player_color: game::WHITE, opponent_color: game::BLACK }));
+    commands.spawn((player_black_model, Player { player_color: game::BLACK, opponent_color: game::WHITE }));
     commands.spawn(game_board);
 }
 
@@ -55,6 +55,7 @@ fn spawn_layout(mut commands: Commands) {
             style: Style {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..default()
@@ -63,6 +64,16 @@ fn spawn_layout(mut commands: Commands) {
             ..default()
         })
         .with_children(|parent| {
+            // Add header text
+            parent.spawn(TextBundle::from_section(
+                "GO",
+                TextStyle {
+                    font_size: 60.0,
+                    color: WHITE.into(),
+                    ..default()
+                },
+            ));
+
             // Game board container
             parent
                 .spawn(NodeBundle {
@@ -73,6 +84,7 @@ fn spawn_layout(mut commands: Commands) {
                         grid_template_columns: RepeatedGridTrack::flex(cols, 1.0),
                         grid_template_rows: RepeatedGridTrack::flex(rows, 1.0),
                         padding: UiRect::all(Val::Px(10.0)),
+                        margin: UiRect::top(Val::Px(20.0)),
                         ..default()
                     },
                     background_color: DARK_GREY.into(),
@@ -106,26 +118,35 @@ fn spawn_grid_square(builder: &mut ChildBuilder, row: usize, col: usize) {
                     height: Val::Percent(100.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
+                    border: UiRect::all(Val::Px(1.0)),
                     ..default()
                 },
-                background_color: WHITE.into(),
+                border_color: Color::rgb(1.0, 0.65, 0.0).into(),
+                background_color: Color::srgb(0.8, 0.8, 0.8).into(),
                 ..default()
             },
             GridSquare { row, col },
         ))
         .with_children(|parent| {
-            // Square content
-            parent.spawn(NodeBundle {
-                style: Style {
-                    width: Val::Percent(90.0),
-                    height: Val::Percent(90.0),
+            // Stone background (inner square)
+            parent.spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(90.0),
+                        height: Val::Percent(90.0),
+                        ..default()
+                    },
+                    background_color: Color::srgb(0.8, 0.8, 0.8).into(),
                     ..default()
                 },
-                background_color: GRAY.into(),
-                ..default()
-            });
+                StoneBackground,
+            ));
         });
 }
+
+// Add this marker component at the top with other components
+#[derive(Component)]
+struct StoneBackground;
 
 /**
  * Handles all interaction with the game board squares.
@@ -141,68 +162,83 @@ fn spawn_grid_square(builder: &mut ChildBuilder, row: usize, col: usize) {
  */
 fn grid_button_interaction(
     mut interaction_query: Query<
-        (&Interaction, &GridSquare, &mut BackgroundColor),
+        (&Interaction, &GridSquare, Entity),
         (Changed<Interaction>, With<Button>),
     >,
+    mut stone_query: Query<(&mut BackgroundColor, &Parent), With<StoneBackground>>,
     mut board: Query<&mut Board>,
     mut player_query: Query<&mut PlayerModel, With<Player>>,
 ) {
-    for (interaction, grid_square, mut color) in interaction_query.iter_mut() {
-        match *interaction {
-            Interaction::Pressed => {
-                println!(
-                    "Square clicked: row={}, col={}",
-                    grid_square.row, grid_square.col
-                );
-                if let Ok(mut board) = board.get_single_mut() {
-                    let mut current_player = None;
-                    let mut opponent_player = None;
+    for (interaction, grid_square, button_entity) in interaction_query.iter_mut() {
+        // Get the stone background entity that's a child of this specific button
+        if let Some(mut stone_color) = stone_query.iter_mut()
+            .find(|(_, parent)| parent.get() == button_entity) {
+            match *interaction {
+                Interaction::Pressed => {
+                    println!("Square clicked: row={}, col={}", grid_square.row, grid_square.col);
+                    if let Ok(mut board) = board.get_single_mut() {
+                        println!("Current turn: {}", if board.is_white_turn { "White" } else { "Black" });
+                        
+                        let mut current_player = None;
+                        let mut opponent_player = None;
 
-                    // Get the correct current player and opponent based on whose turn it is
-                    for player_model in player_query.iter_mut() {
-                        if (board.is_white_turn && player_model.get_player_color() == game::WHITE) ||
-                           (!board.is_white_turn && player_model.get_player_color() == game::BLACK) {
-                            current_player = Some(player_model);
-                        } else {
-                            opponent_player = Some(player_model);
+                        // Debug print for players
+                        for player_model in player_query.iter() {
+                            println!("Found player with color: {}", player_model.get_player_color());
                         }
-                    }
 
-                    if let (Some(mut current), Some(mut opponent)) = (current_player, opponent_player) {
-                        let placed = game::place_stone(
-                            &mut board,
-                            &mut current,
-                            &mut opponent,
-                            grid_square.row,
-                            grid_square.col,
-                        );
-
-                        if placed {
-                            // Set color based on which player placed the stone
-                            if current.get_player_color() == game::WHITE {
-                                *color = Color::srgb(1.0, 1.0, 1.0).into(); // White stone
+                        for player_model in player_query.iter_mut() {
+                            if (board.is_white_turn && player_model.get_player_color() == game::WHITE) ||
+                               (!board.is_white_turn && player_model.get_player_color() == game::BLACK) {
+                                current_player = Some(player_model);
                             } else {
-                                *color = Color::srgb(0.0, 0.0, 0.0).into(); // Black stone
+                                opponent_player = Some(player_model);
                             }
-                            println!("Stone placed successfully");
+                        }
+
+                        if let (Some(mut current), Some(mut opponent)) = (current_player, opponent_player) {
+                            println!("Attempting to place stone for player: {}", current.get_player_color());
+                            let placed = game::place_stone(
+                                &mut board,
+                                &mut current,
+                                &mut opponent,
+                                grid_square.row,
+                                grid_square.col,
+                            );
+
+                            if placed {
+                                // Update the stone background color
+                                if current.get_player_color() == game::WHITE {
+                                    *stone_color.0 = Color::srgb(1.0, 1.0, 1.0).into(); // White stone
+                                } else {
+                                    *stone_color.0 = Color::srgb(0.0, 0.0, 0.0).into(); // Black stone
+                                }
+                                println!("Stone placed successfully");
+                            } else {
+                                println!("Failed to place stone");
+                            }
                         } else {
-                            println!("Failed to place stone");
+                            println!("Failed to get current and opponent players");
                         }
                     }
                 }
-            }
-            Interaction::Hovered => {
-                if let Ok(board) = board.get_single() {
-                    // Show hover color based on current player's turn
-                    if board.is_white_turn {
-                        *color = Color::srgb(0.9, 0.9, 0.9).into(); // Light grey for white's turn
-                    } else {
-                        *color = Color::srgb(0.3, 0.3, 0.3).into(); // Dark grey for black's turn
+                Interaction::Hovered => {
+                    if let Ok(board) = board.get_single() {
+                        if stone_color.0 .0 == Color::srgb(0.8, 0.8, 0.8) {
+                            if board.is_white_turn {
+                                *stone_color.0 = Color::srgb(0.9, 0.9, 0.9).into();
+                            } else {
+                                *stone_color.0 = Color::srgb(0.3, 0.3, 0.3).into();
+                            }
+                        }
                     }
                 }
-            }
-            Interaction::None => {
-                *color = Color::srgb(0.8, 0.8, 0.8).into(); // Default grid color
+                Interaction::None => {
+                    if stone_color.0 .0 == Color::srgb(0.9, 0.9, 0.9) || 
+                       stone_color.0 .0 == Color::srgb(0.3, 0.3, 0.3) {
+                        *stone_color.0 = Color::srgb(0.8, 0.8, 0.8).into();
+                    }
+                }
             }
         }
     }
