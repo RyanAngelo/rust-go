@@ -123,29 +123,35 @@ fn grid_button_interaction(
                     grid_square.row, grid_square.col
                 );
                 if let Ok(mut board) = board.get_single_mut() {
-                    // Get players one at a time to avoid multiple mutable borrows
-                    let mut white_player = None;
-                    let mut black_player = None;
+                    let mut current_player = None;
+                    let mut opponent_player = None;
 
+                    // Get the correct current player and opponent based on whose turn it is
                     for player_model in player_query.iter_mut() {
-                        if player_model.get_player_color() == game::WHITE {
-                            white_player = Some(player_model);
-                        } else if player_model.get_player_color() == game::BLACK {
-                            black_player = Some(player_model);
+                        if (board.is_white_turn && player_model.get_player_color() == game::WHITE) ||
+                           (!board.is_white_turn && player_model.get_player_color() == game::BLACK) {
+                            current_player = Some(player_model);
+                        } else {
+                            opponent_player = Some(player_model);
                         }
                     }
-                    //TODO: This needs to be passing the correct player_models rather than just white then black
-                    if let (Some(mut white), Some(mut black)) = (white_player, black_player) {
+
+                    if let (Some(mut current), Some(mut opponent)) = (current_player, opponent_player) {
                         let placed = game::place_stone(
                             &mut board,
-                            &mut white,
-                            &mut black,
+                            &mut current,
+                            &mut opponent,
                             grid_square.row,
                             grid_square.col,
                         );
 
                         if placed {
-                            *color = Color::rgb(0.35, 0.75, 0.35).into();
+                            // Set color based on which player placed the stone
+                            if current.get_player_color() == game::WHITE {
+                                *color = Color::srgb(1.0, 1.0, 1.0).into(); // White stone
+                            } else {
+                                *color = Color::srgb(0.0, 0.0, 0.0).into(); // Black stone
+                            }
                             println!("Stone placed successfully");
                         } else {
                             println!("Failed to place stone");
@@ -154,10 +160,17 @@ fn grid_button_interaction(
                 }
             }
             Interaction::Hovered => {
-                *color = Color::rgb(0.75, 0.75, 0.75).into();
+                if let Ok(board) = board.get_single() {
+                    // Show hover color based on current player's turn
+                    if board.is_white_turn {
+                        *color = Color::srgb(0.9, 0.9, 0.9).into(); // Light grey for white's turn
+                    } else {
+                        *color = Color::srgb(0.3, 0.3, 0.3).into(); // Dark grey for black's turn
+                    }
+                }
             }
             Interaction::None => {
-                *color = Color::rgb(1.0, 1.0, 1.0).into();
+                *color = Color::srgb(0.8, 0.8, 0.8).into(); // Default grid color
             }
         }
     }

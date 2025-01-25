@@ -9,6 +9,8 @@ pub const WHITE: u8 = 1;
 pub const BLACK: u8 = 2;
 pub const WHITE_TERR: u8 = 3;
 pub const BLACK_TERR: u8 = 4;
+pub const CURRENT_TURN_WHITE: bool = true;
+pub const CURRENT_TURN_BLACK: bool = false;
 
 /**
  * Place a stone on the board and run through the accompanying logic
@@ -22,7 +24,15 @@ pub fn place_stone(
     row: usize,
     col: usize,
 ) -> bool {
+    if (board.is_white_turn && player_model.player.player_color != WHITE) ||
+       (!board.is_white_turn && player_model.player.player_color != BLACK) {
+        return false;
+    }
+
     if board.board_state[row][col].player_color == 0 {
+        if check_for_self_capture(board, row, col) {
+            return false;
+        }
         println!("Placing {:?} at location {:?}/{:?}", player_model.player.player_color, row, col);
         board.update_board_color(row, col, player_model.player.player_color);
         let friends = get_adjacent(&mut board.board_state, board.board_size, row, col, player_model.player.player_color);
@@ -33,6 +43,7 @@ pub fn place_stone(
         opponent_model.set_player_liberties(opponent_liberties);
         let removed_chain_keys = check_for_conquered(opponent_model, &mut board.board_state);
         cleanup_captured(opponent_model, removed_chain_keys);
+        board.toggle_turn();
         return true;
     } else {
         return false;
@@ -318,6 +329,7 @@ impl PlayerModel {
     pub board_state: Vec<Vec<Intersection>>,
     pub white_captured: u8,
     pub black_captured: u8,
+    pub is_white_turn: bool,
 }
 
 impl Board {
@@ -348,11 +360,16 @@ impl Board {
             board_state: Self::build_board_start(board_size),
             white_captured: 0,
             black_captured: 0,
+            is_white_turn: true,
         }
     }
 
     pub fn update_board_color(&mut self, row: usize, col: usize, color: u8) {
         self.board_state[row][col].player_color = color;
+    }
+
+    pub fn toggle_turn(&mut self) {
+        self.is_white_turn = !self.is_white_turn;
     }
 
 }
