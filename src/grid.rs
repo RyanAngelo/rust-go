@@ -2,14 +2,18 @@ use crate::game::{self, Board, Player, PlayerModel};
 use bevy::color::palettes::css::*;
 use bevy::prelude::*;
 
-// Component to track grid position
+/**
+ * Component to track grid position
+ */
 #[derive(Component)]
 pub struct GridSquare {
     row: usize,
     col: usize,
 }
 
-// Plugin to handle game initialization and grid interactions
+/**
+ * Plugin to handle game initialization and grid interactions
+ */
 pub struct GridPlugin;
 
 impl Plugin for GridPlugin {
@@ -20,7 +24,10 @@ impl Plugin for GridPlugin {
     }
 }
 
-// Initialize the game board and players
+/**
+ * Creates the initial game board and player models.
+ * Spawns the board and both players (black and white) into the game world.
+ */
 fn create_gameboard(mut commands: Commands) {
     let player_white_model = PlayerModel::new(game::WHITE);
     let player_black_model = PlayerModel::new(game::BLACK);
@@ -30,6 +37,11 @@ fn create_gameboard(mut commands: Commands) {
     commands.spawn(game_board);
 }
 
+/**
+ * Creates the visual layout of the game board.
+ * Spawns a camera and creates a grid of interactive squares representing the Go board.
+ * The board is centered on screen with a dark background.
+ */
 fn spawn_layout(mut commands: Commands) {
     // Spawn camera
     commands.spawn(Camera2dBundle::default());
@@ -77,6 +89,14 @@ fn spawn_layout(mut commands: Commands) {
         });
 }
 
+/**
+ * Creates an individual square for the game board grid.
+ * Each square is a button that can be interacted with to place stones.
+ * 
+ * @param builder - The ChildBuilder to spawn the square into
+ * @param row - The row position of this square on the board
+ * @param col - The column position of this square on the board
+ */
 fn spawn_grid_square(builder: &mut ChildBuilder, row: usize, col: usize) {
     builder
         .spawn((
@@ -107,6 +127,18 @@ fn spawn_grid_square(builder: &mut ChildBuilder, row: usize, col: usize) {
         });
 }
 
+/**
+ * Handles all interaction with the game board squares.
+ * This includes:
+ * - Processing clicks to place stones
+ * - Updating square colors based on the current player's turn
+ * - Showing hover effects when moving over squares
+ * - Enforcing game rules through the place_stone function
+ * 
+ * The color of placed stones will be:
+ * - White for the white player
+ * - Black for the black player
+ */
 fn grid_button_interaction(
     mut interaction_query: Query<
         (&Interaction, &GridSquare, &mut BackgroundColor),
