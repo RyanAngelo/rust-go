@@ -83,7 +83,7 @@ fn spawn_layout(mut commands: Commands) {
                         margin: UiRect::top(Val::Px(20.0)),
                         ..default()
                     },
-                    background_color: Color::rgb(0.87, 0.68, 0.34).into(), // Wooden board color
+                    background_color: Color::srgb(0.87, 0.68, 0.34).into(), // Wooden board color
                     ..default()
                 })
                 .with_children(|parent| {
@@ -191,7 +191,7 @@ fn grid_button_interaction(
     mut player_query: Query<&mut PlayerModel, With<Player>>,
 ) {
     for (interaction, grid_square, button_entity) in interaction_query.iter() {
-        if let Some(mut stone_color) = stone_query.iter_mut()
+        if let Some(_stone_color) = stone_query.iter_mut()
             .find(|(_, parent)| parent.get() == button_entity) {
             if let Interaction::Pressed = *interaction {
                 if let Ok(mut board) = board.get_single_mut() {
@@ -230,11 +230,11 @@ fn grid_button_interaction(
                                             }
                                         }) {
                                         match color {
-                                            game::WHITE => *square_color.0 = Color::rgba(1.0, 1.0, 1.0, 1.0).into(),
-                                            game::BLACK => *square_color.0 = Color::rgba(0.0, 0.0, 0.0, 1.0).into(),
-                                            game::WHITE_TERR => *square_color.0 = Color::rgba(0.9, 0.9, 0.9, 0.8).into(),
-                                            game::BLACK_TERR => *square_color.0 = Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
-                                            game::EMPTY => *square_color.0 = Color::rgba(0.0, 0.0, 0.0, 0.0).into(),
+                                            game::WHITE => *square_color.0 = Color::srgba(1.0, 1.0, 1.0, 1.0).into(),
+                                            game::BLACK => *square_color.0 = Color::srgba(0.0, 0.0, 0.0, 1.0).into(),
+                                            game::WHITE_TERR => *square_color.0 = Color::srgba(0.9, 0.9, 0.9, 0.8).into(),
+                                            game::BLACK_TERR => *square_color.0 = Color::srgba(0.2, 0.2, 0.2, 0.8).into(),
+                                            game::EMPTY => *square_color.0 = Color::srgba(0.0, 0.0, 0.0, 0.0).into(),
                                             _ => {}
                                         }
                                     }
