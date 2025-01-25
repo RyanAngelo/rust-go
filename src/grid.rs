@@ -213,8 +213,9 @@ fn grid_button_interaction(
                                             match color {
                                                 game::WHITE => *square_color.0 = Color::srgb(1.0, 1.0, 1.0).into(),
                                                 game::BLACK => *square_color.0 = Color::srgb(0.0, 0.0, 0.0).into(),
-                                                game::WHITE_TERR => *square_color.0 = Color::srgb(0.8, 0.8, 0.8).into(),
-                                                game::BLACK_TERR => *square_color.0 = Color::srgb(0.3, 0.3, 0.3).into(),
+                                                game::WHITE_TERR => *square_color.0 = Color::srgb(0.9, 0.9, 0.9).into(),
+                                                game::BLACK_TERR => *square_color.0 = Color::srgb(0.2, 0.2, 0.2).into(),
+                                                game::EMPTY => *square_color.0 = Color::srgb(0.8, 0.8, 0.8).into(),
                                                 _ => {}
                                             }
                                         }
@@ -226,7 +227,9 @@ fn grid_button_interaction(
                 }
                 Interaction::Hovered => {
                     if let Ok(board) = board.get_single() {
-                        if stone_color.0 .0 == Color::srgb(0.8, 0.8, 0.8) {
+                        // Only show hover effect on empty squares
+                        let square_state = board.board_state[grid_square.row][grid_square.col].get_player_color();
+                        if square_state == game::EMPTY {
                             if board.is_white_turn {
                                 *stone_color.0 = Color::srgb(0.9, 0.9, 0.9).into();
                             } else {
@@ -236,9 +239,14 @@ fn grid_button_interaction(
                     }
                 }
                 Interaction::None => {
-                    if stone_color.0 .0 == Color::srgb(0.9, 0.9, 0.9) || 
-                       stone_color.0 .0 == Color::srgb(0.3, 0.3, 0.3) {
-                        *stone_color.0 = Color::srgb(0.8, 0.8, 0.8).into();
+                    // Only reset empty squares
+                    let square_state = board.get_single().unwrap()
+                        .board_state[grid_square.row][grid_square.col].get_player_color();
+                    if square_state == game::EMPTY {
+                        if stone_color.0 .0 == Color::srgb(0.9, 0.9, 0.9) || 
+                           stone_color.0 .0 == Color::srgb(0.3, 0.3, 0.3) {
+                            *stone_color.0 = Color::srgb(0.8, 0.8, 0.8).into();
+                        }
                     }
                 }
             }
