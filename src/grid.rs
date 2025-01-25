@@ -79,7 +79,7 @@ fn spawn_layout(mut commands: Commands) {
                         width: Val::Px(600.0),
                         height: Val::Px(600.0),
                         position_type: PositionType::Relative,
-                        padding: UiRect::all(Val::Px(20.0)),
+                        padding: UiRect::all(Val::Px(0.0)),
                         margin: UiRect::top(Val::Px(20.0)),
                         ..default()
                     },
@@ -93,12 +93,13 @@ fn spawn_layout(mut commands: Commands) {
                         parent.spawn(NodeBundle {
                             style: Style {
                                 position_type: PositionType::Absolute,
-                                width: Val::Percent(100.0),
+                                left: Val::Px(0.0),
+                                right: Val::Px(0.0),
                                 height: Val::Px(2.0),
                                 top: Val::Percent(i as f32 * (100.0 / (rows - 1) as f32)),
                                 ..default()
                             },
-                            background_color: Color::rgb(0.1, 0.1, 0.1).into(),
+                            background_color: Color::srgb(0.1, 0.1, 0.1).into(),
                             ..default()
                         });
                         
@@ -106,12 +107,13 @@ fn spawn_layout(mut commands: Commands) {
                         parent.spawn(NodeBundle {
                             style: Style {
                                 position_type: PositionType::Absolute,
+                                top: Val::Px(0.0),
+                                bottom: Val::Px(0.0),
                                 width: Val::Px(2.0),
-                                height: Val::Percent(100.0),
                                 left: Val::Percent(i as f32 * (100.0 / (cols - 1) as f32)),
                                 ..default()
                             },
-                            background_color: Color::rgb(0.1, 0.1, 0.1).into(),
+                            background_color: Color::srgb(0.1, 0.1, 0.1).into(),
                             ..default()
                         });
                     }
