@@ -61,7 +61,7 @@ fn spawn_layout(mut commands: Commands) {
                 align_items: AlignItems::Center,
                 ..default()
             },
-            background_color: BLACK.into(),
+            background_color: DARK_GRAY.into(),
             ..default()
         })
         .with_children(|parent| {
@@ -73,6 +73,19 @@ fn spawn_layout(mut commands: Commands) {
                     color: WHITE.into(),
                     ..default()
                 },
+            ));
+
+            // Turn indicator text
+            parent.spawn((
+                TextBundle::from_section(
+                    "White's Turn",
+                    TextStyle {
+                        font_size: 32.0,
+                        color: Color::WHITE,
+                        ..default()
+                    },
+                ),
+                TurnText,
             ));
 
             // Game board container
@@ -171,6 +184,10 @@ fn spawn_intersection(parent: &mut ChildBuilder, row: usize, col: usize, rows: u
 #[derive(Component)]
 struct StoneBackground;
 
+// Add this near other components
+#[derive(Component)]
+struct TurnText;
+
 /**
  * Handles all interaction with the game board squares.
  * This includes:
@@ -192,6 +209,7 @@ fn grid_button_interaction(
     mut stone_query: Query<(&mut BackgroundColor, &Parent), With<StoneBackground>>,
     mut board: Query<&mut Board>,
     mut player_query: Query<&mut PlayerModel, With<Player>>,
+    mut turn_text: Query<&mut Text, With<TurnText>>,
 ) {
     for (interaction, grid_square, button_entity) in interaction_query.iter() {
         if let Some(_stone_color) = stone_query.iter_mut()
@@ -241,6 +259,17 @@ fn grid_button_interaction(
                                             _ => {}
                                         }
                                     }
+                                }
+                            }
+
+                            // Update turn text
+                            if let Ok(mut text) = turn_text.get_single_mut() {
+                                if board.is_white_turn {
+                                    text.sections[0].value = "White's Turn".to_string();
+                                    text.sections[0].style.color = Color::WHITE;
+                                } else {
+                                    text.sections[0].value = "Black's Turn".to_string();
+                                    text.sections[0].style.color = Color::BLACK;
                                 }
                             }
                         }
