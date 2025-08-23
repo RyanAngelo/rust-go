@@ -42,16 +42,16 @@ pub fn place_stone(
         let removed_chain_keys = check_for_conquered(opponent_model, &mut board.board_state);
         cleanup_captured(opponent_model, removed_chain_keys);
         board.toggle_turn();
-        return true;
+        true
     } else {
-        return false;
+        false
     }
 }
 
 //Find surrounding adjacent neighbors of a color
 //Only borrows
 pub fn get_adjacent(
-    board_state: &mut Vec<Vec<Intersection>>,
+    board_state: &mut [Vec<Intersection>],
     board_size: usize,
     row: usize,
     col: usize,
@@ -61,41 +61,25 @@ pub fn get_adjacent(
     let mut friends: Vec<(usize, usize)> = Vec::new();
     let intersection: &Intersection = &board_state[row][col];
     //Check left friend
-    if intersection.col != 0 {
-        if board_state[intersection.row][intersection.col - 1].player_color
-            == desired_color
-        {
-            friends.push((intersection.row, intersection.col-1));
-        }
+    if intersection.col != 0 && board_state[intersection.row][intersection.col - 1].player_color == desired_color {
+        friends.push((intersection.row, intersection.col-1));
     }
 
     //Check right friend
-    if intersection.col + 1 < board_size {
-        if board_state[intersection.row][intersection.col + 1].player_color
-            == desired_color
-        {
-            friends.push((intersection.row, intersection.col+1));
-        }
+    if intersection.col + 1 < board_size && board_state[intersection.row][intersection.col + 1].player_color == desired_color {
+        friends.push((intersection.row, intersection.col+1));
     }
 
     //Check friend above
-    if intersection.row != 0 {
-        if board_state[intersection.row - 1][intersection.col].player_color
-            == desired_color
-        {
-            friends.push((intersection.row - 1, intersection.col));
-        }
+    if intersection.row != 0 && board_state[intersection.row - 1][intersection.col].player_color == desired_color {
+        friends.push((intersection.row - 1, intersection.col));
     }
 
     //Check friend below
-    if intersection.row + 1 < board_size {
-        if board_state[intersection.row + 1][intersection.col].player_color
-            == desired_color
-        {
-            friends.push((intersection.row + 1, intersection.col));
-        }
+    if intersection.row + 1 < board_size && board_state[intersection.row + 1][intersection.col].player_color == desired_color {
+        friends.push((intersection.row + 1, intersection.col));
     }
-    return friends;
+    friends
 }
 
 
@@ -105,7 +89,7 @@ pub fn get_adjacent(
      * row and col represent the location of the newly placed stone
     **/
     pub fn update_chain(
-        board_state: &mut Vec<Vec<Intersection>>,
+        board_state: &mut [Vec<Intersection>],
         player_model: &mut PlayerModel,
         friends: Vec<(usize, usize)>,
         row: usize,
@@ -127,7 +111,7 @@ pub fn get_adjacent(
                 }
             }
         }
-        return new_friend_chain;
+        new_friend_chain
     }
 
     /**
@@ -136,7 +120,7 @@ pub fn get_adjacent(
      * This is done on a specific player's chains
      */
     pub fn update_player_liberties(
-        board_state: &mut Vec<Vec<Intersection>>,
+        board_state: &mut [Vec<Intersection>],
         board_size: usize,
         player_model: &mut PlayerModel) -> HashMap<String, Vec<(usize, usize)>> {
         let mut player_liberties: HashMap<String, Vec<(usize, usize)>> = HashMap::new();
@@ -159,7 +143,7 @@ pub fn get_adjacent(
             player_liberties.insert(chain_key.to_string(), liberties_for_chain);
         }            
         println!("Liberties {:?}", player_model.player_liberties);
-        return player_liberties;
+        player_liberties
     }
 
     /**
@@ -198,12 +182,12 @@ pub fn get_adjacent(
 
     pub fn check_for_conquered(
         player_model: &mut PlayerModel, 
-        board_state: &mut Vec<Vec<Intersection>>) 
+        board_state: &mut [Vec<Intersection>]) 
     -> Vec<String> {
         let mut removed_chain_keys: Vec<String> = Vec::<String>::new();
         for (chain_key, liberties) in player_model.player_liberties.iter() {
             println!("Checking to see if chain id {chain_key} has any liberties...");
-            if liberties.len() == 0 {
+            if liberties.is_empty() {
                 println!("Chain id {chain_key} has no liberties. It has been eliminated.");
                 let captured_chain = match player_model.player_chains.get(chain_key) {
                     Some(captured) => captured,
@@ -222,7 +206,7 @@ pub fn get_adjacent(
         
         println!("The following chains were removed {:?}", removed_chain_keys);
         //TODO: call update_prisoners as needed
-        return removed_chain_keys;
+        removed_chain_keys
     }
     
     /**
@@ -261,6 +245,7 @@ impl PlayerModel {
         self.player.player_color
     }
 
+    #[allow(dead_code)]
     fn update_player_chains(&mut self, chain_key: &str, index: usize, new_value: (usize, usize)) {
         if let Some(vec) = self.player_chains.get_mut(chain_key) {
             if let Some(pair) = vec.get_mut(index) {
@@ -276,6 +261,7 @@ impl PlayerModel {
         None
     }
 
+    #[allow(dead_code)]
     fn remove_player_chain_item(&mut self, chain_key: &str, index: usize) -> Option<(usize, usize)> {
         if let Some(vec) = self.player_chains.get_mut(chain_key) {
             if index < vec.len() {
@@ -286,15 +272,17 @@ impl PlayerModel {
     }
 
     fn add_player_chain(&mut self, chain_key: &str, new_chain: Vec<(usize, usize)>) {
-            self.player_chains.entry(chain_key.to_string()).or_insert_with(Vec::new)
+            self.player_chains.entry(chain_key.to_string()).or_default()
             .extend(new_chain);
     }
 
+    #[allow(dead_code)]
     fn add_player_chain_item(&mut self, chain_key: &str, item: (usize, usize)) {
-        self.player_chains.entry(chain_key.to_string()).or_insert_with(Vec::new)
+        self.player_chains.entry(chain_key.to_string()).or_default()
         .push(item);
     }
 
+    #[allow(dead_code)]
     fn update_player_liberties(&mut self, chain_key: &str, index: usize, new_value: (usize, usize)) {
         if let Some(vec) = self.player_chains.get_mut(chain_key) {
             if let Some(pair) = vec.get_mut(index) {
@@ -311,6 +299,7 @@ impl PlayerModel {
         None
     }
 
+    #[allow(dead_code)]
     fn remove_player_liberties_item(&mut self, chain_key: &str, index: usize) -> Option<(usize, usize)> {
             if let Some(vec) = self.player_liberties.get_mut(chain_key) {
                 if index < vec.len() {
@@ -320,14 +309,16 @@ impl PlayerModel {
         None
     }
 
+    #[allow(dead_code)]
     fn add_player_liberties(&mut self, chain_key: &str, new_liberties: Vec<(usize, usize)>) {
-        self.player_liberties.entry(chain_key.to_string()).or_insert_with(Vec::new)
+        self.player_liberties.entry(chain_key.to_string()).or_default()
             .extend(new_liberties);
     }
 
+    #[allow(dead_code)]
     fn add_player_liberties_item(&mut self, chain_key: &str, item: (usize, usize)) {
-        self.player_liberties.entry(chain_key.to_string()).or_insert_with(Vec::new)
-            .push(item);
+        self.player_liberties.entry(chain_key.to_string()).or_default()
+        .push(item);
     }
 
     fn set_player_liberties(&mut self, updated_liberties: HashMap<String, Vec<(usize, usize)>>) {
@@ -345,14 +336,16 @@ impl PlayerModel {
  pub(crate) struct Board {
     pub board_size: usize,
     pub board_state: Vec<Vec<Intersection>>,
+    #[allow(dead_code)]
     pub white_captured: u8,
+    #[allow(dead_code)]
     pub black_captured: u8,
     pub is_white_turn: bool,
 }
 
 impl Board {
     pub fn generate_id(row: usize, col: usize) -> String {
-        return row.to_string() + "_" + &col.to_string();
+        row.to_string() + "_" + &col.to_string()
     }
 
     /**board_connections
@@ -369,12 +362,12 @@ impl Board {
             }
             b_rows.push(b_columns);
         }
-        return b_rows;
+        b_rows
     }
 
     pub fn new(board_size: usize) -> Self {
         Board {
-            board_size: board_size,
+            board_size,
             board_state: Self::build_board_start(board_size),
             white_captured: 0,
             black_captured: 0,
@@ -406,13 +399,13 @@ impl Intersection {
         Intersection {
             player_color: EMPTY, //a new intersection is always an empty intersection
             chain_id: Board::generate_id(row, col),
-            row: row,
-            col: col,
+            row,
+            col,
         }
     }
 
     pub fn get_player_color(&self) -> u8 {
-        return self.player_color;
+        self.player_color
     }
 }
 
@@ -426,6 +419,7 @@ impl fmt::Display for Intersection {
 #[derive(Component)]
 pub(crate) struct Player {
     pub(crate) player_color: u8,
+    #[allow(dead_code)]
     pub(crate) opponent_color: u8,
 }
 
@@ -433,7 +427,7 @@ impl Player {
     pub fn new(new_player_color: u8, opponent_color: u8) -> Self {
         Player {
             player_color: new_player_color,
-            opponent_color: opponent_color,
+            opponent_color,
         }
     }
 }

@@ -5,6 +5,7 @@ use bevy::prelude::*;
 pub const BOARD_SIZE: usize = 9;
 
 
+
 /**
  * Component to track grid position
  */
