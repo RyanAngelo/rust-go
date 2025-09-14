@@ -28,7 +28,6 @@ cargo test
 ## Running
 
 ### Dynamic linking
-This is the most impactful compilation time decrease! 
 You can compile bevy as dynamic library, preventing it from having to be statically linked each time you rebuild 
 your project. You can enable this with the dynamic_linking feature flag.
 https://bevyengine.org/learn/quick-start/getting-started/setup/
@@ -41,8 +40,3 @@ cargo run --features "bevy/dynamic_linking"
 - `src/main.rs` - Application entry point and Bevy setup
 - `src/game.rs` - Core game logic and rules implementation
 - `src/grid.rs` - Board visualization and interaction handling
-
-## Development Profiles
-The project includes optimized development profiles in `Cargo.toml`:
-- Development build with optimization level 1
-- Dependencies compiled with optimization level 3 for better performance

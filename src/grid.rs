@@ -174,6 +174,7 @@ fn spawn_intersection(parent: &mut ChildBuilder, row: usize, col: usize, rows: u
                     ..default()
                 },
                 background_color: Color::srgba(0.0, 0.0, 0.0, 0.0).into(),
+                border_radius: BorderRadius::all(Val::Px(14.0)), // Make it circular
                 ..default()
             },
             StoneBackground,
